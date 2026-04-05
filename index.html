@@ -1,0 +1,1300 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A321neo 病急亂投醫 — ECAM Quick Reference</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #0a0c0f;
+  --panel: #0f1317;
+  --panel2: #141820;
+  --border: #1e2530;
+  --border-bright: #2a3545;
+  --amber: #f5a623;
+  --amber-dim: #8a5d12;
+  --green: #39d353;
+  --green-dim: #1a5c28;
+  --red: #e05252;
+  --blue: #4db8ff;
+  --blue-dim: #1a4060;
+  --text: #c8d4e0;
+  --text-dim: #5a6a7a;
+  --text-bright: #eaf2ff;
+  --accent: #f5a623;
+  --warning-bg: #1a1200;
+  --caution-bg: #0a1520;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans TC', 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* TOP HEADER */
+.header {
+  background: linear-gradient(180deg, #111820 0%, #0a0c0f 100%);
+  border-bottom: 1px solid var(--border-bright);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.header-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text-bright);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.header-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  flex: 1;
+}
+
+.warning-badge {
+  background: var(--warning-bg);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  padding: 4px 8px;
+  letter-spacing: 1px;
+  animation: blink 3s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 90%, 100% { opacity: 1; }
+  95% { opacity: 0.3; }
+}
+
+/* SEARCH BAR */
+.search-bar {
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border-bright);
+  color: var(--text-bright);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  letter-spacing: 1px;
+  transition: border-color 0.2s;
+}
+
+.search-input::placeholder { color: var(--text-dim); }
+.search-input:focus { border-color: var(--amber); }
+
+.search-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+  letter-spacing: 2px;
+}
+
+/* LAYOUT */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 100px);
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  height: calc(100vh - 100px);
+  position: sticky;
+  top: 100px;
+}
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-section-header {
+  padding: 10px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(245,166,35,0.05);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.sidebar-section-header:hover { background: rgba(245,166,35,0.1); }
+
+.sidebar-section-header .arrow {
+  transition: transform 0.2s;
+  font-size: 8px;
+}
+
+.sidebar-section-header.collapsed .arrow { transform: rotate(-90deg); }
+
+.sidebar-items {
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.sidebar-items.collapsed { max-height: 0; }
+
+.sidebar-item {
+  padding: 7px 14px 7px 22px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 2px solid transparent;
+  font-family: 'Noto Sans TC', sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.sidebar-item:hover {
+  color: var(--text-bright);
+  background: rgba(77,184,255,0.05);
+  border-left-color: var(--blue);
+}
+
+.sidebar-item.active {
+  color: var(--amber);
+  background: rgba(245,166,35,0.08);
+  border-left-color: var(--amber);
+}
+
+.sidebar-item .dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* MAIN CONTENT */
+.main {
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--bg);
+}
+
+/* HOME PAGE */
+.home-page {
+  max-width: 900px;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  margin-bottom: 20px;
+}
+
+.chapter-card {
+  background: var(--panel);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.chapter-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--amber-dim);
+  transition: background 0.15s;
+}
+
+.chapter-card:hover {
+  background: var(--panel2);
+}
+.chapter-card:hover::before { background: var(--amber); }
+
+.chapter-card .me-code {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.chapter-card .me-title {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.chapter-card .me-count {
+  margin-top: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* AIRCRAFT INFO */
+.ac-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ac-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+}
+
+.ac-card-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.ac-table {
+  width: 100%;
+  font-size: 12px;
+}
+
+.ac-table tr td:first-child {
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding-right: 12px;
+  width: 80px;
+  letter-spacing: 0.5px;
+}
+
+.ac-table tr td:last-child {
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+
+.ac-table tr { border-bottom: 1px solid var(--border); }
+.ac-table tr:last-child { border: none; }
+.ac-table tr td { padding: 5px 0; }
+
+/* DETAIL PAGE */
+.detail-page {}
+
+.detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: color 0.15s;
+  letter-spacing: 1px;
+}
+.detail-back:hover { color: var(--amber); }
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-me-tag {
+  background: var(--warning-bg);
+  border: 1px solid var(--amber-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+  padding: 4px 8px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.detail-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.detail-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+/* ALERT CARDS */
+.alert-grid {
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+}
+
+.alert-card {
+  background: var(--panel);
+  transition: background 0.15s;
+}
+
+.alert-card-header {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.15s;
+}
+
+.alert-card-header:hover { background: var(--panel2); }
+
+.alert-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--amber);
+  letter-spacing: 1.5px;
+  flex: 1;
+}
+
+.alert-chevron {
+  color: var(--text-dim);
+  font-size: 10px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.alert-card.open .alert-chevron { transform: rotate(90deg); }
+
+.alert-body {
+  display: none;
+  padding: 0 16px 16px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+}
+
+.alert-card.open .alert-body { display: block; }
+
+/* SECTIONS INSIDE ALERT */
+.info-section {
+  margin-top: 14px;
+}
+
+.info-section-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-bright);
+}
+
+.fcom-box {
+  background: rgba(10,21,32,0.8);
+  border-left: 3px solid var(--blue-dim);
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.7;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+.cb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+}
+
+.cb-table th {
+  background: rgba(245,166,35,0.08);
+  color: var(--amber);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-align: left;
+  padding: 6px 10px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--amber-dim);
+}
+
+.cb-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.cb-table td:first-child { color: var(--amber); }
+.cb-table td:nth-child(3) { color: var(--green); }
+.cb-table td:last-child { color: var(--blue); font-weight: 700; }
+
+.cb-table tr:hover td { background: rgba(77,184,255,0.04); }
+
+.cb-group-header {
+  background: rgba(0,0,0,0.3);
+  color: var(--text-dim);
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+.test-box {
+  background: rgba(57,211,83,0.05);
+  border-left: 3px solid var(--green-dim);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.7;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.3px;
+}
+
+.eon-box {
+  background: rgba(224,82,82,0.05);
+  border-left: 3px solid var(--red);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.7;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+.reset-box {
+  background: rgba(77,184,255,0.05);
+  border-left: 3px solid var(--blue-dim);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.9;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.reset-box strong {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* STATUS BAR */
+.status-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 4px 20px;
+  display: flex;
+  gap: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  z-index: 100;
+}
+
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* SEARCH RESULTS */
+.search-result-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.search-result-item:hover { background: var(--panel2); }
+.search-result-item .res-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+.search-result-item .res-chapter {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+.res-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  background: rgba(245,166,35,0.1);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  padding: 2px 6px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* WATER LEVEL TABLE */
+.water-table {
+  border-collapse: collapse;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+}
+.water-table td { padding: 6px 16px; border: 1px solid var(--border); }
+.water-table td:first-child { color: var(--amber); }
+.water-table td:last-child { color: var(--green); }
+
+/* HIGHLIGHT */
+.highlight { color: var(--amber); font-weight: 600; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); }
+::-webkit-scrollbar-thumb:hover { background: var(--amber-dim); }
+
+.no-cb {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 6px 0;
+}
+
+.tag-warning {
+  display: inline-block;
+  background: rgba(224,82,82,0.12);
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  letter-spacing: 1px;
+  margin-right: 4px;
+}
+
+.search-empty {
+  padding: 40px;
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">▶ A321NEO / PW1133G-JM</div>
+    <div class="header-title">病急亂投醫</div>
+  </div>
+  <div class="header-sub">ECAM QUICK REFERENCE  ·  REV.1  ·  20230208</div>
+  <div class="warning-badge">⚠ NOT FOR MAINTENANCE USE</div>
+</div>
+
+<div class="search-bar">
+  <span class="search-label">SEARCH:</span>
+  <input type="text" class="search-input" id="searchInput" placeholder="輸入ECAM訊息 e.g. FADEC, BRAKES, ENG..." autocomplete="off">
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <!-- Sidebar built by JS -->
+  </div>
+  <div class="main" id="mainContent">
+    <!-- Pages built by JS -->
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-item"><div class="status-dot"></div>SYSTEM NORMAL</div>
+  <div class="status-item">MSN: 10730~10736</div>
+  <div class="status-item">STD: ST8</div>
+  <div class="status-item">THIS IS NOT A MAINTENANCE MANUAL</div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const chapters = [
+  { code: "ME-21", title: "Air Conditioning" },
+  { code: "ME-22", title: "Auto Flight" },
+  { code: "ME-23", title: "Communications" },
+  { code: "ME-24", title: "Electrical Power" },
+  { code: "ME-26", title: "Fire Protection" },
+  { code: "ME-27", title: "Flight Controls" },
+  { code: "ME-28", title: "Fuel" },
+  { code: "ME-29", title: "Hydraulic Power" },
+  { code: "ME-30", title: "Ice and Rain Protection" },
+  { code: "ME-31", title: "Indicating/Recording Systems" },
+  { code: "ME-32", title: "Landing Gear" },
+  { code: "ME-34", title: "Navigation" },
+  { code: "ME-36", title: "Pneumatic" },
+  { code: "ME-46", title: "Information Systems" },
+  { code: "ME-47", title: "Inert Gas System" },
+  { code: "ME-49", title: "APU" },
+  { code: "ME-52", title: "Doors" },
+  { code: "ME-70", title: "Engine" },
+  { code: "OTHER", title: "Others / Special" },
+];
+
+const alerts = [
+  // ME-21 Air Conditioning
+  { id:"air_cond_ctl",     chapter:"ME-21", name:"AIR COND CTL 1(2)-A(B) FAULT",     fcom:"This alert triggers when the lane A(B) of ACSC 1(2) is failed.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/28VDC",fin:"51HH",loc:"X21"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN B/115VAC",fin:"50HH",loc:"Y18"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/28VDC",fin:"55HH",loc:"W21"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN B/28VDC",fin:"56HH",loc:"Y21"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN B/115VAC",fin:"54HH",loc:"Y20"}], test:"TASK 21-61-00-710-001-A Operational Test of the Pack Temperature-Control System" },
+  { id:"air_pack_fault",   chapter:"ME-21", name:"AIR PACK 1(2) FAULT",              fcom:"This alert triggers when: - The position of pack flow control valve disagrees with the commanded position, or - The pack valve is closed.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN B/115VAC",fin:"54HH",loc:"Y20"}], test:"TASK 21-61-00-710-001-A Operational Test of the Pack Temperature-Control System\nTASK 21-51-00-710-002-A Operational Test of the Flow Control and Indicating System" },
+  { id:"air_pack12_fault", chapter:"ME-21", name:"AIR PACK 1+2 FAULT",               fcom:"This alert triggers when both ACSC are failed.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"}], test:"TASK 21-61-00-710-001-A / TASK 21-51-00-710-002-A" },
+  { id:"air_pack_off",     chapter:"ME-21", name:"AIR PACK 1(2) OFF",                fcom:"This alert triggers when the PACK 1(2) pb-sw is set to OFF and no failure is detected.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"}], test:"TASK 21-61-00-710-001-A" },
+  { id:"air_pack_ovht",    chapter:"ME-21", name:"AIR PACK 1(2) OVHT",               fcom:"This alert triggers when the pack compressor outlet temperature rises above 260°C.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"}], test:"TASK 21-61-00-710-001-A" },
+  { id:"air_pack_regul",   chapter:"ME-21", name:"AIR PACK 1(2) REGUL FAULT",        fcom:"This alert triggers when the temperature regulation performance is degraded, or an inconsistency is detected between air flow.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"}], test:"TASK 21-61-00-710-001-A", reset:"拉ACSC C/B:\n- 開C/B 55HH & 53HH\n- 開C/B 51HH & 49HH\n- 開C/B 50HH & 56HH\n- 開C/B 52HH\n- 等5秒，依序壓回所有C/B\n注意: Reset期間可能有短暫油門增加" },
+  { id:"cab_pr_sys_fault", chapter:"ME-21", name:"CAB PR SYS 1(2) FAULT",            fcom:"This alert triggers when the cabin pressure controller is failed.", cb:[{panel:"49VU",des:"AIR COND/CAB/PRESS/CTL1",fin:"1HL",loc:"D09"},{panel:"122VU",des:"AIR COND/CAB PRESS/CTL/MAN",fin:"3HL",loc:"Y23"},{panel:"122VU",des:"AIR COND/CAB PRESS/CTL/2",fin:"2HL",loc:"Y22"}], test:"TASK 21-31-00-710-002-A", reset:"CPC 1: 開C/B 1HL，等5秒，壓回\nCPC 2: 開C/B 2HL，等5秒，壓回" },
+  { id:"cab_pr_12_fault",  chapter:"ME-21", name:"CAB PR SYS 1+2 FAULT",             fcom:"This alert triggers when both cabin pressure controllers are failed.", cb:[{panel:"49VU",des:"AIR COND/CAB/PRESS/CTL1",fin:"1HL",loc:"D09"},{panel:"122VU",des:"AIR COND/CAB PRESS/CTL/2",fin:"2HL",loc:"Y22"}], test:"TASK 21-31-00-710-002-A" },
+  { id:"cab_pr_excess",    chapter:"ME-21", name:"CAB PR EXCESS CAB ALT",             fcom:"Triggers when cabin altitude is above 9550ft in cruise, or above higher of 9550ft / 1000ft above airfield pressure altitude in climb/descent.", cb:[], test:"TASK 21-31-00-710-002-A" },
+  { id:"cab_pr_ldg_elev",  chapter:"ME-21", name:"CAB PR LDG ELEV FAULT",             fcom:"Triggers when LDG ELEV selector is AUTO and landing field elevation from FMGC is not available.", cb:[{panel:"49VU",des:"AIR COND/CAB/PRESS/CTL1",fin:"1HL",loc:"D09"},{panel:"121VU",des:"AUTO FLT/FMGC/1",fin:"10CA1",loc:"H08"},{panel:"121VU",des:"AUTO FLT/FMGC/2",fin:"10CA2",loc:"M17"}], test:"TASK 21-31-00-710-002-A / TASK 22-96-00-710-001-A" },
+  { id:"vent_avncs",       chapter:"ME-21", name:"VENT AVNCS SYS FAULT",              fcom:"Triggers when: power up test not satisfactory, AEVC not supplied, or valve position disagree.", cb:[{panel:"49VU",des:"AIR COND/AVNCS VENT/CTL",fin:"5HQ",loc:"D05"},{panel:"49VU",des:"AIR COND/AVNCS VENT/CTL",fin:"6HQ",loc:"D06"},{panel:"122VU",des:"AIR COND/AVNCS/VENT/MONG",fin:"3HQ",loc:"Y17"}], test:"TASK 21-26-00-710-001-A", reset:"拉C/B 122VU Y17（3HQ），等5秒後壓回" },
+  { id:"vent_blower",      chapter:"ME-21", name:"VENT BLOWER FAULT",                 fcom:"This alert triggers when the blowing pressure is low or there is a duct overheat.", cb:[{panel:"122VU",des:"AIR COND/AVNCS/VENT/MONG",fin:"3HQ",loc:"Y17"}], test:"開C/B，等5秒，壓回" },
+  { id:"vent_extract",     chapter:"ME-21", name:"VENT EXTRACT FAULT",                fcom:"This alert triggers when the extract pressure is low.", cb:[{panel:"122VU",des:"AIR COND/AVNCS/VENT/MONG",fin:"3HQ",loc:"Y17"}], test:"開C/B，等5秒，壓回" },
+  { id:"vent_skin",        chapter:"ME-21", name:"VENT SKIN VALVE FAULT",             fcom:"Triggers when extract valve fully open in phase 3, or in flight, or inlet valve not fully closed in flight.", cb:[{panel:"122VU",des:"AIR COND/AVNCS/VENT/MONG",fin:"3HQ",loc:"Y17"}], test:"開C/B，等5秒，壓回" },
+  { id:"cond_trim_air",    chapter:"ME-21", name:"COND TRIM AIR SYS FAULT",           fcom:"Triggers when one trim air valve is failed, or overpressure downstream of the hot air valve.", cb:[{panel:"49VU",des:"AIR COND/TEMP CTL/SYS 1 CHAN B/28VDC",fin:"52HH",loc:"D08"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 1/CHAN A/115VAC",fin:"49HH",loc:"X22"},{panel:"122VU",des:"AIR COND/TEMP CTL SYS 2/CHAN A/115VAC",fin:"53HH",loc:"W22"}], test:"TASK 21-63-00-710-004-A", reset:"依序開C/B: 55HH→53HH→51HH→49HH→50HH→56HH→52HH\n等5秒後壓回所有C/B" },
+  { id:"aft_crg_heat",     chapter:"ME-21", name:"COND AFT CRG HEAT FAULT",           fcom:"Triggers if the heating controller of the FWD(AFT) cargo compartment is failed.", cb:[{panel:"49VU",des:"AIR COND/AFT CARGO/VENT & HTG/CTL & MONG",fin:"31HN",loc:"C07"}], test:"TASK 21-43-00-740-002-A" },
+
+  // ME-22 Auto Flight
+  { id:"ap_off",           chapter:"ME-22", name:"AUTO FLT AP OFF",                   fcom:"Triggers only for involuntary disconnection. For voluntary disconnect, red AP OFF on ECAM.", cb:[{panel:"49VU",des:"AUTO FLT/FMGC/1",fin:"10CA1",loc:"H08"},{panel:"121VU",des:"AUTO FLT/FMGC/2",fin:"10CA2",loc:"M17"}], test:"TASK 22-96-00-710-001-A" },
+  { id:"athr_off",         chapter:"ME-22", name:"AUTO FLT A/THR OFF",                fcom:"Triggers only for involuntary A/THR disconnection. Amber A/THR OFF and ENG THRUST LOCKED shown.", cb:[{panel:"49VU",des:"AUTO FLT/FMGC/1",fin:"10CA1",loc:"H08"},{panel:"121VU",des:"AUTO FLT/FMGC/2",fin:"10CA2",loc:"M17"}], test:"TASK 22-96-00-710-001-A", reset:"ENG不運轉: 按FCU A/THR pb重新接合，再按A/THR instinctive disconnect pb斷開\nENG運轉: 加EXT PWR or APU GEN → ENG MASTER OFF → 按FCU A/THR pb → 按disconnect pb" },
+  { id:"athr_limited",     chapter:"ME-22", name:"AUTO FLT A/THR LIMITED",            fcom:"Triggers when A/THR active but thrust levers below CL detent (2 eng) or MCT (1 eng). Caution repeated every 5s.", cb:[], test:"檢查PFR，無maintenance message則無需維修" },
+  { id:"fac1_fault",       chapter:"ME-22", name:"AUTO FLT FAC 1 FAULT",              fcom:"Triggers when one FAC computer is failed.", cb:[{panel:"49VU",des:"AUTO FLT/FAC1/28VDC",fin:"5CC1",loc:"H10"},{panel:"49VU",des:"AUTO FLT/FAC1/26VAC",fin:"14CC1",loc:"H09"}], test:"TASK 22-96-00-710-001-A" },
+  { id:"fac2_fault",       chapter:"ME-22", name:"AUTO FLT FAC 2 FAULT",              fcom:"Triggers when one FAC computer is failed.", cb:[{panel:"121VU",des:"AUTO FLT/FAC2/28VDC",fin:"5CC2",loc:"M19"},{panel:"121VU",des:"AUTO FLT/FAC2/26VAC",fin:"14CC2",loc:"M18"}], test:"TASK 22-96-00-710-001-A" },
+  { id:"fac12_fault",      chapter:"ME-22", name:"AUTO FLT FAC 1+2 FAULT",            fcom:"Triggers when two FAC computers are failed.", cb:[{panel:"49VU",des:"AUTO FLT/FAC1/28VDC",fin:"5CC1",loc:"H10"},{panel:"121VU",des:"AUTO FLT/FAC2/28VDC",fin:"5CC2",loc:"M19"}], test:"TASK 22-96-00-710-001-A" },
+  { id:"fcu1_fault",       chapter:"ME-22", name:"AUTO FLT FCU 1(2) FAULT",           fcom:"Triggers when only one FCU channel remains operative.", cb:[{panel:"49VU",des:"AUTO FLT/FCU/1",fin:"9CA1",loc:"H11"},{panel:"121VU",des:"AUTO FLT/FCU/2",fin:"9CA2",loc:"M21"}], test:"TASK 22-96-00-710-001-A", reset:"1. 拉FCU 1或2 C/B，等5秒後壓回\n2. 若FAULT仍在:\n   拉FCU 1+2 C/Bs，等7分鐘後5秒內分別壓回\n   待30秒系統完成SAFETY TEST" },
+  { id:"fcu12_fault",      chapter:"ME-22", name:"AUTO FLT FCU 1+2 FAULT",            fcom:"Triggers when the FCU is completely lost.", cb:[{panel:"49VU",des:"AUTO FLT/FCU/1",fin:"9CA1",loc:"H11"},{panel:"121VU",des:"AUTO FLT/FCU/2",fin:"9CA2",loc:"M21"}], test:"TASK 22-91-00-710-001-A", reset:"同FCU 1(2) FAULT程序，優先拉兩個C/B同時等5秒後壓回" },
+  { id:"fmgc_malfunction", chapter:"ME-22", name:"FMGC MALFUNCTION",                  fcom:"If ENG not running (效果較好): 上電2分鐘後將FD 1(2) pb OFF，拉FMGC C/B，10秒後壓回\nIf ENG running: FD 1(2) pb OFF，拉FMGC C/B，10秒後壓回", cb:[{panel:"49VU",des:"AUTO FLT/FMGC/1",fin:"10CA1",loc:"H08"},{panel:"121VU",des:"AUTO FLT/FMGC/2",fin:"10CA2",loc:"M17"}], test:"TASK 22-70-00-710-001-A", reset:"若ENG不運轉 (效果較好):\n- 上電2分鐘後，FD1 pb OFF\n- 拉C/B 10CA1，等10秒，壓回\n- 等1分鐘或待MCDU \"PLEASE WAIT\"消失\n\n若ENG運轉:\n- FD1 pb OFF\n- 拉C/B 10CA1，等10秒，壓回" },
+  { id:"mcdu_one_blank",   chapter:"ME-22", name:"One MCDU locked or blank",           fcom:"拉對應C/B，等10秒後壓回。", cb:[{panel:"49VU",des:"AUTO FLT/MCDU/1",fin:"11CA1",loc:"H07"},{panel:"121VU",des:"AUTO FLT/MCDU/2",fin:"11CA2",loc:"N20"},{panel:"121VU",des:"AUTO FLT/MCDU/3",fin:"11CA3",loc:"N21"}], test:"TASK 22-70-00-710-001-A", reset:"MCDU 1: 拉C/B 11CA1，等10秒，壓回\nMCDU 2: 拉C/B 11CA2，等10秒，壓回\nMCDU 3: 拉C/B 11CA3，等10秒，壓回" },
+  { id:"mcdu_both_blank",  chapter:"ME-22", name:"Both MCDU locked or blank",          fcom:"同FMGC程序，ENG不運轉時效果較好。", cb:[{panel:"49VU",des:"AUTO FLT/FMGC/1",fin:"10CA1",loc:"H08"},{panel:"121VU",des:"AUTO FLT/FMGC/2",fin:"10CA2",loc:"M17"}], test:"TASK 22-70-00-710-001-A", reset:"參考FMGC MALFUNCTION程序" },
+  { id:"cat3_dual",        chapter:"ME-22", name:"CAT 3 DUAL (on INOP SYS)",          fcom:"若CAT 3 DUAL在INOP SYS但無其他ECAM訊息: 更換AP in command，或重置FAC。", cb:[], test:"TASK 22-97-00-710-001-A", reset:"Set FAC1 pb OFF → 等3秒 → SET FAC1 pb ON\n等待AUTO FLT FAC1 FAULT消失\nSet FAC2 pb OFF → 等3秒 → SET FAC2 pb ON\n注意: 若FAC/FMGC看不到ADR/IR故障，reset無法清除訊息" },
+  { id:"rud_trim_sys",     chapter:"ME-22", name:"AUTO FLT RUD TRIM SYS",             fcom:"Triggers when one rudder trim system is failed.", cb:[{panel:"49VU",des:"AUTO FLT/FAC1/28VDC",fin:"5CC1",loc:"H10"},{panel:"121VU",des:"AUTO FLT/FAC2/28VDC",fin:"5CC2",loc:"M19"}], test:"TASK 22-96-00-710-001-A / TASK 22-91-00-710-001-A" },
+  { id:"yaw_damper_sys",   chapter:"ME-22", name:"AUTO FLT YAW DAMPER SYS",           fcom:"Triggers when one yaw damper system is failed.", cb:[{panel:"49VU",des:"AUTO FLT/FAC1/28VDC",fin:"5CC1",loc:"H10"},{panel:"121VU",des:"AUTO FLT/FAC2/28VDC",fin:"5CC2",loc:"M19"}], test:"TASK 22-63-00-710-001-A", reset:"若AP不能使用:\nSet FAC 1(2) pb OFF → 等3秒 → Set FAC 1(2) pb ON" },
+
+  // ME-23 Communications
+  { id:"com_amu_fault",    chapter:"ME-23", name:"COM AMU PART FAULT",                fcom:"Triggers when one AMU side is failed.", cb:[{panel:"49VU",des:"COM/AMU/SIDE1",fin:"81RN",loc:"G06"},{panel:"121VU",des:"COM/ACP3/AMU SIDE2",fin:"84RN",loc:"M01"}], test:"TASK 23-51-00-740-002-A" },
+  { id:"com_rmp1_fault",   chapter:"ME-23", name:"COM RMP 1(2) FAULT",               fcom:"Triggers when RMP 1(2)(3) is failed.", cb:[{panel:"49VU",des:"COM/RMP/1 SPLY1",fin:"82RN",loc:"G07"},{panel:"49VU",des:"COM/RMP/2 SPLY1",fin:"83RN",loc:"G08"},{panel:"121VU",des:"COM/RMP/3 SPLY1/1 SPLY2",fin:"86RN",loc:"M03"}], test:"TASK 23-52-00-740-801-A" },
+  { id:"com_rmp12_fault",  chapter:"ME-23", name:"COM RMP 1+2 FAULT",                fcom:"Triggers when two RMPs are failed.", cb:[{panel:"49VU",des:"COM/RMP/1 SPLY1",fin:"82RN",loc:"G07"},{panel:"49VU",des:"COM/RMP/2 SPLY1",fin:"83RN",loc:"G08"}], test:"TASK 23-52-00-740-801-A" },
+  { id:"com_rmp123_fault", chapter:"ME-23", name:"COM RMP 1+2+3 FAULT",              fcom:"Triggers when all RMPs are failed.", cb:[{panel:"49VU",des:"COM/RMP/1 SPLY1",fin:"82RN",loc:"G07"},{panel:"49VU",des:"COM/RMP/2 SPLY1",fin:"83RN",loc:"G08"},{panel:"121VU",des:"COM/RMP/3 SPLY1/1 SPLY2",fin:"86RN",loc:"M03"}], test:"TASK 23-52-00-740-801-A" },
+  { id:"capt_ptt_stuck",   chapter:"ME-23", name:"COM CAPT(F/O) PTT STUCK",          fcom:"Triggers when PTT is active on CAPT(F/O)(3RD OCC) side for more than 40s and no transmission key is selected.", cb:[{panel:"49VU",des:"COM/RMP/1 SPLY1",fin:"82RN",loc:"G07"},{panel:"49VU",des:"COM/AMU/SIDE1",fin:"81RN",loc:"G06"}], test:"在RMP確認所有transmission key已釋放，INT/RAD在中間位置，斷開手持麥克風，等40秒確認訊息是否消失" },
+  { id:"com_cids_fault",   chapter:"ME-23", name:"COM CIDS 1+2 FAULT",               fcom:"Triggers when CIDS is lost.", cb:[{panel:"49VU",des:"COM NAV/CIDS/DIR1 ESS",fin:"150RH",loc:"G01"},{panel:"121VU",des:"COM NAV/CIDS/DIR1 NORM",fin:"151RH",loc:"M05"},{panel:"49VU",des:"COM NAV/CIDS/DIR2 ESS",fin:"157RH",loc:"G02"},{panel:"121VU",des:"COM NAV/CIDS/DIR2 NORM",fin:"156RH",loc:"M06"}], test:"TASK 23-73-00-710-021-A", reset:"依序執行:\n拉C/B 49VU G01+G02\n拉C/B 121VU M05+M06\n等10秒\n壓回C/B 49VU G01+G02\n等5分鐘\n壓回C/B 121VU M05+M06\n待4分鐘系統恢復", eon:"EON ME-321-26-0001: 多種CIDS虛假故障（PA失效、對講失效、SMOKE LAV DET FAULT、FAP凍結等），通常在電源轉換時發生。建議先執行SDF BITE TEST (AMM 26-10-00-740-801-A)，再依FCOM PRO-ABN-RESET執行CIDS reset。" },
+  { id:"satcom_fault",     chapter:"ME-23", name:"COM SATCOM FAULT",                  fcom:"Triggers when telephone and ACARS transmission are lost.", cb:[{panel:"121VU",des:"SATCOM",fin:"240RV",loc:"K01"}], test:"TASK 23-28-00-740-001-A", reset:"拉C/B 121VU K01，等10秒，壓回" },
+  { id:"vhf3_data",        chapter:"ME-23", name:"COM VHF 3 DATA FAULT",              fcom:"Triggers when data communication via VHF 3 are inoperative.", cb:[{panel:"121VU",des:"COM NAV/VHF/3",fin:"2RC3",loc:"L05"}], test:"N/A", reset:"拉C/B 121VU L05，等5秒，壓回" },
+  { id:"pa_loss",          chapter:"ME-23", name:"PA Loss",                           fcom:"廣播系統失效。", cb:[{panel:"49VU",des:"COM NAV/CIDS/DIR1 ESS",fin:"150RH",loc:"G01"},{panel:"121VU",des:"COM NAV/CIDS/DIR1 NORM",fin:"151RH",loc:"M05"},{panel:"49VU",des:"COM NAV/CIDS/DIR2 ESS",fin:"157RH",loc:"G02"},{panel:"121VU",des:"COM NAV/CIDS/DIR2 NORM",fin:"156RH",loc:"M06"}], test:"TASK 23-73-00-710-022-A", reset:"拉C/B 49VU G01+G02 → 拉C/B 121VU M05+M06 → 等10秒 → 壓回49VU G01+G02 → 等5分鐘 → 壓回121VU M05+M06 → 等4分鐘" },
+  { id:"fap_freezing",     chapter:"ME-23", name:"FAP Freezing",                      fcom:"FAP凍結無法操作。", cb:[{panel:"49VU",des:"COM/CIDS/FLT ATTND PNL/ESS",fin:"171RH",loc:"G03"},{panel:"121VU",des:"COM/FAP1/NORM",fin:"170RH",loc:"Q14"}], test:"N/A", reset:"拉C/B 49VU G03 → 拉C/B 121VU Q14 → 等10秒 → 壓回121VU Q14 → 壓回49VU G03" },
+  { id:"hf_datalink",      chapter:"ME-23", name:"HF DATALINK / HF",                 fcom:"N/A", cb:[{panel:"49VU",des:"HF1",fin:"1RE1",loc:"HA14"}], test:"N/A", reset:"拉C/B 1RE1 → 等2秒 → 壓回C/B 1RE1" },
+  { id:"rmp_frozen",       chapter:"ME-23", name:"RMP NO FUNCTION (FROZEN)",          fcom:"N/A", cb:[], test:"N/A", reset:"依序重置所有RMP:\n- 將ON/OFF SW設至OFF\n- 等5秒\n- 將ON/OFF SW設至ON" },
+  { id:"cpdlc_atsu",       chapter:"ME-23", name:"CPDLC/ADS-C/ATSU DATALINK/DCDU",   fcom:"ATSU相關通訊失效。", cb:[{panel:"121VU",des:"ATSU 1",fin:"3TX1",loc:"K43"},{panel:"121VU",des:"ATSU 1/SWTG",fin:"5TX1",loc:"K42"}], test:"TASK 46-21-00-740-001-A", reset:"拉C/B 121VU K43，K42 → 等5秒 → 壓回K42，K43" },
+  { id:"cins_malfunction", chapter:"ME-23", name:"CINS malfunction",                  fcom:"Cabin Information Network System reset。", cb:[{panel:"2000VU",des:"WAP",fin:"27MH",loc:"D07"},{panel:"2000VU",des:"CINS-HESU",fin:"21RF",loc:"E02"}], test:"TASK 46-41-00-600-806-A", reset:"按Overhead Panel 45VU 上的 CINS RESET pb，等10分鐘系統恢復" },
+  { id:"evac_horn",        chapter:"ME-23", name:"CIDS-Evac horn starts spuriously",  fcom:"N/A", cb:[{panel:"49VU",des:"COM NAV/CIDS/DIR1 ESS",fin:"150RH",loc:"G01"},{panel:"121VU",des:"COM NAV/CIDS/DIR1 NORM",fin:"151RH",loc:"M05"},{panel:"49VU",des:"COM NAV/CIDS/DIR2 ESS",fin:"157RH",loc:"G02"},{panel:"121VU",des:"COM NAV/CIDS/DIR2 NORM",fin:"156RH",loc:"M06"}], test:"N/A", reset:"1. 按EVAC/HORN SHUT OFF SW\n2. Set EVAC CAPT & PURS/CAPT SW to CAPT only\n3. 等3秒，若失敗:\n   - 拉DIR2: C/B 157RH & 156RH\n   若還失敗:\n   - 拉DIR1: C/B 150RH & 151RH\n   - 等1分鐘\n   - 壓回156RH & 157RH\n   等CIDS reset約4分鐘" },
+
+  // ME-24 Electrical Power
+  { id:"elec_ac_bus1",     chapter:"ME-24", name:"ELEC AC BUS 1 FAULT",              fcom:"Triggers when AC 1 busbar is not supplied.", cb:[{panel:"122VU",des:"ELEC/GEN1/OFF/BTC1 SPLY",fin:"5XU",loc:"T28"},{panel:"122VU",des:"ELEC/EXT PWR/CTL",fin:"11XG",loc:"X29"},{panel:"122VU",des:"ELEC/GCU/1",fin:"2XU1",loc:"T26"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_ac_bus2",     chapter:"ME-24", name:"ELEC AC BUS 2 FAULT",              fcom:"Triggers when AC 2 busbar is not supplied.", cb:[{panel:"122VU",des:"ELEC/GEN2/OFF/BTC2 SPLY",fin:"8XU",loc:"T31"},{panel:"122VU",des:"ELEC/GCU/2",fin:"2XU2",loc:"T27"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_gen1_fault",  chapter:"ME-24", name:"ELEC GEN 1(2) FAULT",              fcom:"Triggers when protection trip initiated by GCU, or line contactor open with GEN pb-sw at ON.", cb:[{panel:"122VU",des:"ELEC/GCU/1",fin:"2XU1",loc:"T26"},{panel:"122VU",des:"ELEC/GCU/2",fin:"2XU2",loc:"T27"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_gen1_off",    chapter:"ME-24", name:"ELEC GEN 1(2) OFF",                fcom:"Triggers when GEN 1(2) pb-sw set to OFF and no failure detected.", cb:[], test:"N/A" },
+  { id:"elec_idg_disc",    chapter:"ME-24", name:"ELEC IDG 1(2) DISCONNECTED",       fcom:"Triggers when IDG 1(2) is disconnected. If flight crew disconnected IDG1: No troubleshooting necessary.", cb:[{panel:"122VU",des:"ELEC/GCU/1",fin:"2XU1",loc:"T26"},{panel:"122VU",des:"ELEC/GCU/2",fin:"2XU2",loc:"T27"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_idg_oil_ovht",chapter:"ME-24", name:"ELEC IDG 1(2) OIL OVHT",          fcom:"Triggers when IDG 1(2) outlet oil temperature rises above 180°C.", cb:[{panel:"122VU",des:"ELEC/GCU/1",fin:"2XU1",loc:"T26"},{panel:"122VU",des:"ELEC/GCU/2",fin:"2XU2",loc:"T27"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_idg_filter",  chapter:"ME-24", name:"ELEC IDG 1(2) FILTER CLOG",       fcom:"Triggers when IDG 1(2) oil filter is clogged. Check IDG FILTER.", cb:[{panel:"122VU",des:"ELEC/GCU/1",fin:"2XU1",loc:"T26"},{panel:"122VU",des:"ELEC/GCU/2",fin:"2XU2",loc:"T27"}], test:"TASK 24-41-00-740-002-B" },
+  { id:"elec_bat_fault",   chapter:"ME-24", name:"ELEC BAT 1(2) FAULT",              fcom:"Triggers when charging current increases at an abnormal rate.", cb:[{panel:"105VU",des:"ELEC/BAT REF/BCL1",fin:"9PB1",loc:"F01"},{panel:"105VU",des:"ELEC/BAT BUS/REF/BCL1",fin:"8PB1",loc:"G01"}], test:"TASK 24-38-00-710-001-A" },
+  { id:"elec_bcl_fault",   chapter:"ME-24", name:"ELEC BCL 1(2) FAULT",              fcom:"Triggers when battery charge limiter 1(2) is failed.", cb:[{panel:"105VU",des:"ELEC/BAT REF/BCL1",fin:"9PB1",loc:"F01"},{panel:"105VU",des:"ELEC/BAT BUS/REF/BCL2",fin:"8PB2",loc:"J02"}], test:"TASK 24-38-00-710-001-A" },
+  { id:"elec_tr_fault",    chapter:"ME-24", name:"ELEC TR 1(2) FAULT",               fcom:"Triggers when TR 1(2) is failed.", cb:[{panel:"123VU",des:"TR1/SPLY",fin:"2PU1",loc:"AB10"},{panel:"123VU",des:"TR2/214XP/SPLY",fin:"2PU2",loc:"AB04"}], test:"通過CFDS RESET TR 1、2" },
+  { id:"elec_emer_config", chapter:"ME-24", name:"ELEC EMER CONFIG",                  fcom:"Triggers when AC 1 and AC 2 busbars are not supplied. 檢查PFR，無訊息則不需處理。", cb:[], test:"Refer TSM" },
+  { id:"gpu_no_connect",   chapter:"ME-24", name:"GPU can not connect to A/C",       fcom:"GPU無法接上飛機電力系統。", cb:[{panel:"122VU",des:"ELEC/GAPCU",fin:"17XG",loc:"W24"},{panel:"122VU",des:"ELEC/EXT PWR/CTL",fin:"11XG",loc:"X29"},{panel:"123VU",des:"GND/PWR/PROT",fin:"2XG",loc:"AB07"}], test:"TASK 24-41-00-740-002-B", reset:"若有電源連接(IDG/APU GEN): 在35VU按EXT PWR pb\n若無電源: 在35VU將BAT 1+2 pb設至AUTO" },
+
+  // ME-26 Fire Protection
+  { id:"apu_fire",         chapter:"ME-26", name:"APU FIRE",                         fcom:"Triggers when fire detected by both loops, or one loop with other faulty, or both loops rupture within 5s.", cb:[{panel:"121VU",des:"APU/FIRE AND OVHT/DET/LOOP A",fin:"1WG",loc:"L43"},{panel:"121VU",des:"APU/FIRE AND OVHT/DET/LOOP B",fin:"2WG",loc:"L44"}], test:"AMM 26-22-00-710-001-A (先拉C/B 30WF，按APU FIRE TEST BUTTON快速按下並持住，釋放後壓回C/B)" },
+  { id:"apu_fire_det",     chapter:"ME-26", name:"APU FIRE DET FAULT",               fcom:"Triggers when both loops inoperative or FDU inoperative.", cb:[{panel:"121VU",des:"APU/FIRE AND OVHT/DET/LOOP A",fin:"1WG",loc:"L43"},{panel:"121VU",des:"APU/FIRE AND OVHT/DET/LOOP B",fin:"2WG",loc:"L44"}], test:"TASK 26-13-00-710-002-A" },
+  { id:"eng_fire",         chapter:"ME-26", name:"ENG 1(2) FIRE",                    fcom:"Triggers when fire detected by both loops, or by one with other faulty, or both loops rupture within 5s.", cb:[{panel:"49VU",des:"ENGINE/1/FIRE DET/LOOP A",fin:"7WD1",loc:"A06"},{panel:"49VU",des:"ENGINE/2/FIRE DET/LOOP B",fin:"8WD2",loc:"A07"},{panel:"121VU",des:"ENGINE/ENG1/FIRE DET/LOOP B",fin:"8WD1",loc:"Q38"},{panel:"121VU",des:"ENGINE/ENG2/FIRE DET/LOOP A",fin:"7WD2",loc:"Q39"}], test:"TASK 26-12-00-710-001-A / TASK 26-12-00-710-002-B" },
+  { id:"eng_fire_det",     chapter:"ME-26", name:"ENG 1(2) FIRE DET FAULT",          fcom:"Triggers when both loops inoperative or FDU inoperative.", cb:[{panel:"49VU",des:"ENGINE/1/FIRE DET/LOOP A",fin:"7WD1",loc:"A06"},{panel:"121VU",des:"ENGINE/ENG2/FIRE DET/LOOP A",fin:"7WD2",loc:"Q39"}], test:"TASK 26-12-00-710-002-B" },
+  { id:"smoke_aft_cargo",  chapter:"ME-26", name:"SMOKE AFT CARGO SMOKE",             fcom:"Triggers when smoke in AFT cargo compartment detected. 確認無真實煙霧，無外部煙霧來源。", cb:[], test:"確認無真實煙霧狀況", eon:"TFU 23.73.00.101: 某些CIDS-SDF軟體可能造成虛假煙霧警告。" },
+  { id:"smoke_fwd_cargo",  chapter:"ME-26", name:"SMOKE FWD CARGO SMOKE",             fcom:"Triggers when smoke in FWD cargo compartment detected.", cb:[], test:"確認無真實煙霧狀況", eon:"TFU 23.73.00.101: 某些CIDS-SDF軟體可能造成虛假煙霧警告。" },
+  { id:"smoke_lav",        chapter:"ME-26", name:"SMOKE LAVATORY DET FAULT",          fcom:"Triggers when lavatory smoke detection is failed.", cb:[{panel:"49VU",des:"AIR COND/CIDS/SDF/DIR1 ESS",fin:"15WH",loc:"C05"},{panel:"49VU",des:"AIR COND/CIDS/SDF/DIR2 ESS",fin:"18WH",loc:"C06"},{panel:"122VU",des:"AIR COND/CIDS/SDF/DIR NORM/1",fin:"17WH",loc:"T17"},{panel:"122VU",des:"AIR COND/CIDS/SDF/DIR NORM/2",fin:"14WH",loc:"T18"}], test:"TASK 26-17-00-710-001-A", reset:"依序執行:\n拉C/B 49VU G01+G02+M05+M06\n等10秒\n壓回M05→M06→G01→G02\n等4分鐘\n若失敗: 拉SDF C/B C06→C05→T17→T18，等10秒，同時壓回C05+C06，2秒內壓回T17+T18", eon:"EON ME-321-26-0001: 建議先執行SDF BITE TEST，再CIDS reset。" },
+  { id:"smoke_det_fault",  chapter:"ME-26", name:"SMOKE DET FAULT",                   fcom:"Triggers when both SDCU or CIDS-SDF are failed.", cb:[{panel:"49VU",des:"AIR COND/CIDS/SDF/DIR1 ESS",fin:"15WH",loc:"C05"},{panel:"122VU",des:"AIR COND/CIDS/SDF/DIR NORM/1",fin:"17WH",loc:"T17"}], test:"TASK 26-17-00-710-001-A", reset:"依序拉C/B: C06→C05→T17→T18，等10秒，同時壓回C05+C06，2秒內壓回T17+T18，等4分鐘" },
+  { id:"avionics_smoke",   chapter:"ME-26", name:"AVIONICS SMOKE",                    fcom:"Triggers when smoke in the ventilation duct is detected.", cb:[{panel:"49VU",des:"AIR COND/AVNCS VENT/CTL",fin:"5HQ",loc:"D05"},{panel:"49VU",des:"AIR COND/AVNCS VENT/CTL",fin:"6HQ",loc:"D06"},{panel:"49VU",des:"FWS/FWC1/SPLY",fin:"3WW",loc:"F01"}], test:"(1) Reset AEVC: 拉C/B 5HQ數秒後壓回 (2) Reset FWC1+2 (2WW/3WW) (3) TASK 21-26-00-710-001-A" },
+  { id:"smoke_crg_btl",    chapter:"ME-26", name:"SMOKE AFT(FWD) CRG BTL 1(2) FAULT", fcom:"Triggers when bottle squib failed, or bottle at low pressure.", cb:[{panel:"49VU",des:"AIR COND/CIDS/SDF/DIR1 ESS",fin:"15WH",loc:"C05"},{panel:"49VU",des:"AIR COND/CIDS/SDF/DIR2 ESS",fin:"18WH",loc:"C06"},{panel:"122VU",des:"AIR COND/CIDS/SDF/DIR NORM/1",fin:"17WH",loc:"T17"},{panel:"122VU",des:"AIR COND/CIDS/SDF/DIR NORM/2",fin:"14WH",loc:"T18"}], test:"TASK 26-23-00-710-001-A", reset:"依序拉C/B: C06→C05→T17→T18，等10秒，同時壓回C05+C06，2秒內壓回T17+T18，等4分鐘" },
+
+  // ME-27 Flight Controls
+  { id:"fctl_altn_law",    chapter:"ME-27", name:"F/CTL ALTN LAW",                   fcom:"Triggers when alternate laws are active.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"105VU",des:"FLT CTL/ELAC1/STBY SPLY",fin:"16CE1",loc:"A01"},{panel:"121VU",des:"FLIGHT CONTROLS/ELAC2/NORM/SPLY",fin:"15CE2",loc:"R20"}], test:"TASK 27-96-00-740-001-A" },
+  { id:"fctl_direct_law",  chapter:"ME-27", name:"F/CTL DIRECT LAW",                 fcom:"Triggers when direct laws are active.", cb:[{panel:"49VU",des:"NAV PROBES/ADIRU1/115VAC",fin:"4FP1",loc:"F06"},{panel:"121VU",des:"ADIRS/ADIRU/2/115VAC",fin:"4FP2",loc:"N06"}], test:"TASK 27-96-00-740-001-A" },
+  { id:"elac1_fault",      chapter:"ME-27", name:"F/CTL ELAC 1 FAULT",               fcom:"Triggers when ELAC failure (FAULT LT on ELAC pb), or one sidestick transducer faulty.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"105VU",des:"FLT CTL/ELAC1/STBY SPLY",fin:"16CE1",loc:"A01"},{panel:"121VU",des:"FLIGHT CONTROLS/ELAC2/NORM/SPLY",fin:"15CE2",loc:"R20"}], test:"TASK 27-96-00-740-001-A / TASK 27-96-00-710-001-A" },
+  { id:"elac1_pitch",      chapter:"ME-27", name:"F/CTL ELAC 1 PITCH FAULT",         fcom:"Triggers when there is a failure of pitch channel in ELAC 1.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"121VU",des:"FLIGHT CONTROLS/SEC2/SPLY",fin:"21CE2",loc:"Q18"}], test:"TASK 27-96-00-740-001-A", reset:"注意: 勿在MMEL item SEC 1/2有效時reset。僅限一次嘗試。\nSet ELAC 2 pb-sw OFF → pitch trim 5 UP → Set ELAC 1 pb-sw OFF → 等3秒 → Set ELAC 1 pb-sw ON → 等15秒，確認pitch trim在0位置 → 飛控檢查 → Set ELAC 2 pb-sw ON → 設pitch trim到起飛CG" },
+  { id:"elac2_pitch",      chapter:"ME-27", name:"F/CTL ELAC 2 PITCH FAULT",         fcom:"Triggers when there is a failure of pitch channel in ELAC 2.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"121VU",des:"FLIGHT CONTROLS/ELAC2/NORM/SPLY",fin:"15CE2",loc:"R20"}], test:"TASK 27-96-00-740-001-A", reset:"Set ELAC 1 pb-sw OFF → pitch trim 5 UP → Set ELAC 2 pb-sw OFF → 等3秒 → Set ELAC 2 pb-sw ON → 等15秒確認 → 飛控檢查 → Set ELAC 1 pb-sw ON → 設pitch trim到起飛CG" },
+  { id:"sec1_fault",       chapter:"ME-27", name:"F/CTL SEC 1(2)(3) FAULT",          fcom:"Failure of one SEC.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/SEC1/NORM/SPLY",fin:"21CE1",loc:"B03"},{panel:"121VU",des:"FLIGHT CONTROLS/SEC2/SPLY",fin:"21CE2",loc:"Q18"},{panel:"121VU",des:"FLIGHT CONTROLS/SEC3/SPLY",fin:"21CE3",loc:"Q19"}], test:"TASK 27-96-00-740-001-A" },
+  { id:"splr_fault",       chapter:"ME-27", name:"F/CTL SPLR FAULT",                 fcom:"Triggers when there is a loss of one or more spoilers.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/SEC1/NORM/SPLY",fin:"21CE1",loc:"B03"},{panel:"121VU",des:"FLIGHT CONTROLS/SEC2/SPLY",fin:"21CE2",loc:"Q18"},{panel:"121VU",des:"FLIGHT CONTROLS/SEC3/SPLY",fin:"21CE3",loc:"Q19"}], test:"TASK 27-96-00-740-001-A", reset:"注意: 勿在MMEL item ELAC 1/SEC 1/2/3時reset。僅限一次嘗試。\nSEC1 pb OFF → 等3秒 → ON → SEC2 pb OFF → 等3秒 → ON → SEC3 pb OFF → 等3秒 → ON → 飛控檢查" },
+  { id:"ail_servo",        chapter:"ME-27", name:"F/CTL AIL SERVO FAULT",             fcom:"Triggers when loss of one servojack on one aileron, or loss of one or both ELAC 1 rudder pedal transducers.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"121VU",des:"FLIGHT CONTROLS/ELAC2/NORM/SPLY",fin:"15CE2",loc:"R20"}], test:"Refer TSM", reset:"Set ELAC1 OFF → Set ELAC2 OFF → 等3秒 → Set ELAC2 ON → 飛控檢查 → Set ELAC2 OFF → Set ELAC1 ON → 飛控檢查 → Set ELAC2 ON → 設pitch trim到起飛CG" },
+  { id:"flap_sys1",        chapter:"ME-27", name:"F/CTL FLAP SYS 1(2) FAULT",        fcom:"Triggers when there is failure of flap channel in one SFCC.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/FLP/CTL AND MONG/SYS1",fin:"6CV",loc:"B02"},{panel:"121VU",des:"FLIGHT CONTROLS/FLP/CTL AND/MONG/SYS2",fin:"8CV",loc:"Q21"}], test:"SFCC RESET: 拉C/B 6CV/8CV，等3秒，壓回。TASK 27-51-00-740-002-A" },
+  { id:"flap_locked",      chapter:"ME-27", name:"F/CTL FLAPS(SLATS) LOCKED",        fcom:"FLAPS/SLATS LOCKED triggers when FLAPS/SLATS WING TIP BRAKE ACTIVATE.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/FLP/CTL AND MONG/SYS1",fin:"6CV",loc:"B02"},{panel:"121VU",des:"FLIGHT CONTROLS/FLP/CTL AND/MONG/SYS2",fin:"8CV",loc:"Q21"}], test:"TASK 27-80-00-869-004-A Reset of the Wing Tip Brake (WTB) on Ground" },
+  { id:"stab_jam",         chapter:"ME-27", name:"F/CTL STABILIZER JAM",              fcom:"Loss of electrical control of STABILIZER.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/ELAC1/NORM/SPLY",fin:"15CE1",loc:"B06"},{panel:"49VU",des:"FLIGHT CONTROLS/THS/ACTR/MOT2",fin:"19CE2",loc:"B04"},{panel:"121VU",des:"FLIGHT CONTROLS/THS ACTR/MOT1",fin:"19CE1",loc:"Q16"}], test:"TASK 27-96-00-740-001-A / TASK 27-41-00-730-001-A" },
+  { id:"fcdc1_fault",      chapter:"ME-27", name:"F/CTL FCDC 1(2) FAULT",             fcom:"Triggers when there is a failure of one FCDC.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/FCDC1/SPLY",fin:"20CE1",loc:"B05"},{panel:"121VU",des:"FLIGHT CONTROLS/FCDC2/SPLY",fin:"20CE2",loc:"Q20"}], test:"TASK 27-96-00-740-001-A / TASK 27-96-00-710-001-A" },
+  { id:"config_pitch",     chapter:"ME-27", name:"CONFIG PITCH TRIM NOT IN T.O. RANGE",fcom:"Triggers when PITCH TRIM not in TO config at TO power or T.O CONFIG pb.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/FCDC1/SPLY",fin:"20CE1",loc:"B05"},{panel:"121VU",des:"FLIGHT CONTROLS/FCDC2/SPLY",fin:"20CE2",loc:"Q20"}], test:"TASK 27-96-00-740-001-A" },
+  { id:"config_spdbk",     chapter:"ME-27", name:"CONFIG SPEED BRK NOT RETRACTED",   fcom:"Triggers when speed brakes not retracted at TO power or T.O CONFIG pb.", cb:[{panel:"49VU",des:"FLIGHT CONTROLS/FCDC1/SPLY",fin:"20CE1",loc:"B05"}], test:"TASK 27-96-00-740-001-A" },
+
+  // ME-28 Fuel
+  { id:"fuel_apu_lp",      chapter:"ME-28", name:"FUEL APU LP VALVE FAULT",          fcom:"Triggers when valve position disagrees with selected position.", cb:[{panel:"49VU",des:"APU/FUEL/BLOW OFF/PUMP",fin:"2QC",loc:"B14"},{panel:"121VU",des:"APU/FUEL/LP VALVE/CTL",fin:"1QF",loc:"M40"},{panel:"121VU",des:"APU/APU/CTL",fin:"2KD",loc:"L42"}], test:"TASK 28-29-00-710-001-A" },
+  { id:"fuel_auto_xfr",    chapter:"ME-28", name:"FUEL AUTO TRANSFER FAULT",          fcom:"Triggers when CTR tank QTY>550lb and L or R wing tank QTY<11000lb.", cb:[{panel:"49VU",des:"FUEL/FQI/CHAN/1",fin:"1QT",loc:"A13"},{panel:"121VU",des:"FUEL/FQI/CHAN/2",fin:"2QT",loc:"M27"}], test:"TASK 28-26-00-720-001-A" },
+  { id:"fuel_eng_lp",      chapter:"ME-28", name:"FUEL ENG 1(2) LP VALVE FAULT",     fcom:"N/A", cb:[{panel:"49VU",des:"FUEL/LP VALVE/MOT1/ENG1",fin:"1QG",loc:"A08"},{panel:"49VU",des:"FUEL/LP VALVE/MOT1/ENG2",fin:"2QG",loc:"A09"},{panel:"121VU",des:"FUEL/LP VALVE/MOT2/ENG1",fin:"3QG",loc:"M25"}], test:"TASK 28-24-00-710-002-A" },
+  { id:"fuel_fqi_fault",   chapter:"ME-28", name:"FUEL FQI CH 1(2) FAULT",           fcom:"Triggers when a FQI channel is failed.", cb:[{panel:"49VU",des:"FUEL/FQI/CHAN/1",fin:"1QT",loc:"A13"},{panel:"121VU",des:"FUEL/FQI/CHAN/2",fin:"2QT",loc:"M27"}], test:"TASK 28-42-00-740-001-A" },
+  { id:"fuel_fqi12_fault", chapter:"ME-28", name:"FUEL FQI CH 1+2 FAULT",            fcom:"Triggers when a FQI channel is failed.", cb:[{panel:"49VU",des:"FUEL/FQI/CHAN/1",fin:"1QT",loc:"A13"},{panel:"121VU",des:"FUEL/FQI/CHANNEL/1 AND 2",fin:"8QT",loc:"L25"},{panel:"121VU",des:"FUEL/FQI/CHAN/2",fin:"2QT",loc:"M27"}], test:"TASK 28-46-00-740-001-A / TASK 28-42-00-740-001-A", reset:"CH1: 拉C/B 49VU A13\nCH2: 拉C/B 121VU M27\n等5秒後壓回，待1分鐘系統恢復" },
+  { id:"fuel_qty_loss",    chapter:"ME-28", name:"FUEL QTY Indication loss",         fcom:"油量顯示遺失。", cb:[{panel:"49VU",des:"FUEL/FQI/CHAN/1",fin:"1QT",loc:"A13"},{panel:"121VU",des:"FUEL/FQI/CHAN/2",fin:"2QT",loc:"M27"}], test:"TASK 28-46-00-740-001-A", reset:"拉C/B 1QT → 拉C/B 2QT → 等5秒 → 壓回1QT → 壓回2QT → 等1分鐘恢復" },
+  { id:"fuel_lo_lvl",      chapter:"ME-28", name:"FUEL L(R) WING TK LO LVL",         fcom:"Triggers when wing tank QTY below 1650 lb (sensor-based, independent of FQIS).", cb:[{panel:"49VU",des:"FUEL/AFT LOW LVL/& OVFL/WING L",fin:"43QJ",loc:"A10"},{panel:"49VU",des:"FUEL/AFT LOW LVL/& OVFL/WING R",fin:"44QJ",loc:"A11"}], test:"TASK 28-46-00-740-001-A" },
+  { id:"fuel_ctr_xfr",     chapter:"ME-28", name:"FUEL CTR TK XFR OFF",              fcom:"Triggers when CTR TK XFR pb-sw and CTR TK R XFR pb-sw at OFF in auto mode.", cb:[], test:"TASK 28-26-00-810-814-A (可能忘記開啟)" },
+  { id:"fuel_fused_dis",   chapter:"ME-28", name:"FUEL F.USED/FOB DISAGREE",          fcom:"Triggers when difference between initial FOB and actual FOB+fuel used is significant.", cb:[{panel:"49VU",des:"FUEL/FQI/CHAN/1",fin:"1QT",loc:"A13"},{panel:"121VU",des:"FUEL/FQI/CHAN/2",fin:"2QT",loc:"M27"}], test:"TASK 28-42-00-740-001-A" },
+  { id:"fuel_inerting",    chapter:"ME-28", name:"FUEL INERTING SYS FAULT",           fcom:"Triggers when the fuel inerting system is failed.", cb:[{panel:"121VU",des:"IGGS/CTRL",fin:"7YA",loc:"P28"},{panel:"122VU",des:"CSAS / CTRL",fin:"1HW",loc:"U17"}], test:"TASK 21-58-00-710-002-A" },
+
+  // ME-29 Hydraulic
+  { id:"hyd_b_elec_lo_pr", chapter:"ME-29", name:"HYD B ELEC PUMP LO PR",            fcom:"Triggers when pump outlet pressure ≤1450 PSI.", cb:[{panel:"49VU",des:"HYD/HYD PWR/B WARN/& CTL",fin:"2702GJ",loc:"C12"},{panel:"123VU",des:"B HYD/ELEC PUMP",fin:"2701GJ",loc:"AB09"}], test:"TASK 29-12-00-710-001-A" },
+  { id:"hyd_b_sys_lo_pr",  chapter:"ME-29", name:"HYD B SYS LO PR",                  fcom:"Triggers when B system pressure ≤1450 PSI.", cb:[{panel:"49VU",des:"HYD/HYD PWR/B WARN/& CTL",fin:"2702GJ",loc:"C12"},{panel:"123VU",des:"B HYD/ELEC PUMP",fin:"2701GJ",loc:"AB09"}], test:"N/A" },
+  { id:"hyd_g_eng1_lo_pr", chapter:"ME-29", name:"HYD G ENG 1 PUMP LO PR",           fcom:"Triggers when system pressure ≤1750 PSI.", cb:[{panel:"49VU",des:"HYDRAULIC/G HYD/PUMP ENG1/CTL",fin:"1701GK",loc:"H12"},{panel:"121VU",des:"HYDRAULIC/G HYD/PUMP ENG1/MONG",fin:"1702GK",loc:"R33"}], test:"TASK 29-11-00-710-001-A" },
+  { id:"hyd_y_elec_lo_pr", chapter:"ME-29", name:"HYD Y ELEC PUMP LO PR",            fcom:"Triggers when pump outlet pressure ≤1450 PSI.", cb:[{panel:"121VU",des:"HYDRAULIC/HYD POWER/Y",fin:"3803GX",loc:"N31"},{panel:"123VU",des:"Y HYD/ELEC/PUMP",fin:"3802GX",loc:"AB06"}], test:"TASK 29-24-00-710-001-A" },
+  { id:"hyd_rat_fault",    chapter:"ME-29", name:"HYD RAT FAULT",                    fcom:"Triggers when: RAT not fully stowed, pressure in RAT stowing actuator, or RAT pump not available.", cb:[{panel:"49VU",des:"HYD/RAT/CTL",fin:"2801GE",loc:"B13"},{panel:"121VU",des:"HYDRAULIC/RAT/SPLY/EXTN/SOL1",fin:"2803GE",loc:"P33"}], test:"TASK 29-22-00-710-007-A" },
+  { id:"hyd_ptu_fault",    chapter:"ME-29", name:"HYD PTU FAULT",                    fcom:"Triggers when PTU does not run with ΔP>650 PSI between G and Y, or in flight PTU at AUTO doesn't run with reservoir low.", cb:[], test:"Start both engines. Note: HYD PTU FAULT may trigger if 2nd engine start done <40s after cargo door operation with Yellow electric pump." },
+  { id:"hyd_b_rsvr_lvl",   chapter:"ME-29", name:"HYD B RSVR LO LVL",               fcom:"Triggers when fluid QTY < 2.4L.", cb:[{panel:"49VU",des:"HYD/HYD PWR/B WARN/& CTL",fin:"2702GJ",loc:"C12"}], test:"TASK 29-31-00-710-001-A" },
+  { id:"hyd_g_rsvr_lvl",   chapter:"ME-29", name:"HYD G RSVR LO LVL",               fcom:"Triggers when fluid QTY < 3.5L.", cb:[{panel:"121VU",des:"HYDRAULIC/LOW/LVL/IND",fin:"1832GQ",loc:"N32"},{panel:"121VU",des:"HYDRAULIC/G HYD/PUMP ENG1/MONG",fin:"1702GK",loc:"R33"}], test:"TASK 29-31-00-710-001-A" },
+
+  // ME-30 Ice and Rain
+  { id:"anti_ice_all_pitot",chapter:"ME-30", name:"ANTI ICE ALL PITOT",              fcom:"Triggers when heating of CAPT, F/O and STBY pitot probes are all failed.", cb:[{panel:"49VU",des:"ANTI ICE/PROBES/PHC/1",fin:"2DA1",loc:"D03"},{panel:"122VU",des:"ANTI ICE/PROBES/PHC/2",fin:"2DA2",loc:"Y12"},{panel:"122VU",des:"ANTI ICE/PROBES/PHC/3",fin:"2DA3",loc:"Y16"}], test:"TASK 30-31-00-710-001-A\n若僅有ECAM ANTI ICE ALL PITOT無maintenance message:\nTSM 30-31-00-810-872-A (PHC1+2+3 GND/FLT Info loss)\n檢查MLG/NLG proximity sensor clearances" },
+  { id:"anti_ice_windshield",chapter:"ME-30",name:"ANTI ICE L(R) WINDSHIELD",        fcom:"Triggers when heating system of L(R) WINDSHIELD is failed.", cb:[{panel:"122VU",des:"ANTI ICE/WHC/1",fin:"5DG1",loc:"X13"},{panel:"123VU",des:"ANTI ICE/L/WHSLD",fin:"1DG1",loc:"AF10"},{panel:"122VU",des:"ANTI ICE/WHC/2",fin:"5DG2",loc:"W13"}], test:"TASK 30-42-00-710-001-A", reset:"若PACK OFF且OAT>40°C可能觸發虛假警告:\n開兩個PACK\n等5分鐘\nWHC1: 拉C/B 5DG1，壓回\nWHC2: 拉C/B 5DG2，壓回" },
+  { id:"anti_ice_eng_valve", chapter:"ME-30", name:"ANTI ICE ENG 1(2) VALVE CLSD/OPEN",fcom:"Triggers when NAI valve abnormally closed/open.", cb:[{panel:"49VU",des:"ENGINE/1/FADEC A/AND EIU 1",fin:"2KS1",loc:"A04"},{panel:"122VU",des:"ANTI ICE/ENG/1",fin:"1DN1",loc:"X10"}], test:"TASK 30-21-00-710-002-A / FADEC Self Test AMM 73-21-00-710-806-A" },
+  { id:"wing_aice_sys",     chapter:"ME-30", name:"WING A.ICE SYS FAULT",             fcom:"Triggers when WING ANTI ICE pb-sw set ON and one wing anti ice valve remains closed.", cb:[{panel:"49VU",des:"L/G/LGCIU/SYS1/NORM",fin:"1GA",loc:"C09"},{panel:"121VU",des:"HYDRAULIC/LGCIU/SYS2",fin:"2GA",loc:"Q35"}], test:"TASK 30-11-00-710-001-A / TASK 32-69-00-740-001-A" },
+  { id:"severe_ice",        chapter:"ME-30", name:"SEVERE ICE DETECTED",              fcom:"Triggers when ice detected in flight above 1500ft (TAT<10°C) with WING ANTI ICE pb-sw OFF.", cb:[], test:"OPERATIONAL MESSAGE - NO FURTHER ACTION REQUIRED" },
+  { id:"ice_detected",      chapter:"ME-30", name:"ANTI ICE ICE DETECTED",            fcom:"Triggers when ice detected in flight above 1500ft (TAT<10°C) with ENG ANTI ICE pb-sw OFF.", cb:[], test:"OPERATIONAL MESSAGE - NO FURTHER ACTION REQUIRED" },
+  { id:"anti_ice_detect",   chapter:"ME-30", name:"ANTI ICE DETECT FAULT",            fcom:"Triggers when both ice detectors are failed.", cb:[{panel:"122VU",des:"ANTI ICE/ICE DET/R",fin:"4DD2",loc:"V13"},{panel:"122VU",des:"ANTI ICE/ICE DET/L",fin:"4DD1",loc:"V12"}], test:"TASK 30-81-00-710-001-A" },
+
+  // ME-31 Indicating/Recording
+  { id:"eis_dmc1_fault",   chapter:"ME-31", name:"EIS DMC 1(2)(3) FAULT",            fcom:"Triggers when DMC 1(2)(3) is failed.", cb:[{panel:"49VU",des:"EIS/DMC1/SPLY",fin:"10WT1",loc:"E10"},{panel:"49VU",des:"EIS/DMC1/SWTG",fin:"21WT1",loc:"E08"},{panel:"121VU",des:"EIS/DMC2/SPLY",fin:"10WT2",loc:"Q08"},{panel:"121VU",des:"EIS/DMC3/SPLY",fin:"10WT3",loc:"Q09"}], test:"TASK 31-60-00-710-001-A / TASK 31-50-00-710-001-A" },
+  { id:"fws_fwc1_fault",   chapter:"ME-31", name:"FWS FWC 1(2) FAULT",               fcom:"FWC failure.", cb:[{panel:"49VU",des:"FWS/FWC1/SPLY",fin:"3WW",loc:"F01"},{panel:"121VU",des:"EIS/FWC2/SPLY",fin:"2WW",loc:"Q07"}], test:"TASK 31-50-00-710-001-A", reset:"FWC1: 拉C/B 3WW，壓回 → 等50秒\nFWC2: 拉C/B 2WW，壓回 → 等50秒" },
+  { id:"fws_sdac_fault",   chapter:"ME-31", name:"FWS SDAC 1(2) FAULT",              fcom:"Triggers when SDAC 1 or 2 is failed.", cb:[{panel:"49VU",des:"SDAC/1/SPLY",fin:"3WV",loc:"F04"},{panel:"121VU",des:"EIS/SDAC/2/SPLY",fin:"2WV",loc:"Q06"}], test:"TASK 31-50-00-710-001-A" },
+  { id:"rcdr_cvr_fault",   chapter:"ME-31", name:"RECORDER CVR FAULT",               fcom:"Triggers when CVR is failed.", cb:[{panel:"49VU",des:"RCDR1 CVR&FDR",fin:"40TU",loc:"E14"},{panel:"121VU",des:"RCDR2 CVR&FDR",fin:"42TU",loc:"K39"}], test:"TASK 31-39-00-710-801-A / TASK 31-50-00-710-001-A" },
+  { id:"rcdr_fdr_fault",   chapter:"ME-31", name:"RECORDER FDR FAULT",               fcom:"Triggers when FDR is failed.", cb:[{panel:"49VU",des:"RCDR1 CVR&FDR",fin:"40TU",loc:"E14"},{panel:"121VU",des:"RCDR2 CVR&FDR",fin:"42TU",loc:"K39"}], test:"TASK 31-39-00-710-801-A" },
+  { id:"isis_malfunction", chapter:"ME-31", name:"ISIS malfunction",                  fcom:"飛機靜止時進行Reset。", cb:[{panel:"49VU",des:"NAV/STBY/INST",fin:"5FN",loc:"F12"},{panel:"105VU",des:"NAV/STBY/INST/BAT",fin:"23FN",loc:"J01"}], test:"Refer TSM", reset:"飛機靜止下:\n拉C/B 49VU F12 → 等5秒 → 壓回 → 等2分鐘恢復\n注意: 若reset期間飛機有輕微移動，ATT紅旗會出現，需按RST pb 2秒並等2分鐘" },
+
+  // ME-32 Landing Gear
+  { id:"brakes_askid_fault",chapter:"ME-32", name:"BRAKES A/SKID N/WS FAULT",       fcom:"Triggers when loss of normal brake + Y HYD LO PRESS, or both BSCU channels failed, or A/SKID sw OFF.", cb:[{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS1/CTL",fin:"1GG",loc:"M34"},{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS2/CTL",fin:"3GG",loc:"M35"}], test:"TASK 32-46-00-740-001-A", reset:"停機 → PARK BRK ON → 確認拖桿已斷開 → A/SKID & N/W STRG SW OFF → ON", eon:"EON ME-321-32-0001R1: BSCU P/N E21327307若在Phase 8/9觸發特定故障碼，勿執行TSM，直接換件前通知ME。" },
+  { id:"brakes_sys_fault",  chapter:"ME-32", name:"BRAKES SYS 1(2) FAULT",           fcom:"Triggers when one BSCU channel is failed.", cb:[{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS1/CTL",fin:"1GG",loc:"M34"},{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS2/CTL",fin:"3GG",loc:"M35"}], test:"TASK 32-46-00-740-001-A", reset:"停機 → PARK BRK ON → 確認拖桿已斷開 → A/SKID & N/W STRG SW OFF → ON\n若失敗: 拉BSCU C/B (1GG+2GG / 3GG+4GG)，壓回", eon:"EON ME-321-32-0001R1: 同上，Phase 8/9觸發直接換件。" },
+  { id:"brakes_bscu_fault", chapter:"ME-32", name:"BRAKES BSCU CH 1(2) FAULT",       fcom:"One BSCU channel failed.", cb:[{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS1/CTL",fin:"1GG",loc:"M34"},{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS2/CTL",fin:"3GG",loc:"M35"}], test:"TASK 32-46-00-740-001-A", reset:"同BRAKES SYS FAULT程序", eon:"同EON ME-321-32-0001R1" },
+  { id:"brakes_hot",        chapter:"ME-32", name:"BRAKES HOT",                       fcom:"Triggers when one brake temperature above 300°C. Alert disappears below 290°C.", cb:[], test:"N/A" },
+  { id:"brakes_norm_fault", chapter:"ME-32", name:"BRAKES NORM BRK FAULT",            fcom:"Triggers when normal braking function is lost.", cb:[{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS1/CTL",fin:"1GG",loc:"M34"}], test:"TASK 32-46-00-740-001-A" },
+  { id:"lg_gear_not_down",  chapter:"ME-32", name:"L/G GEAR NOT DOWN",                fcom:"Triggers: LG not downlocked & RA<750ft & both N1<75%, or LG not downlocked & RA<750ft & flaps 1/2/3/FULL, or LG not downlocked & flaps 3/FULL & both RA failed.", cb:[{panel:"121VU",des:"COM NAV/RAD ALTM/1",fin:"1SA1",loc:"K11"},{panel:"121VU",des:"COM NAV/RAD ALTM/2",fin:"1SA2",loc:"K12"}], test:"TASK 34-42-00-740-002-A" },
+  { id:"lg_lgciu_fault",    chapter:"ME-32", name:"L/G LGCIU 1(2) FAULT",             fcom:"LGCIU failure.", cb:[{panel:"49VU",des:"L/G/LGCIU/SYS1/NORM",fin:"1GA",loc:"C09"},{panel:"121VU",des:"HYDRAULIC/LGCIU/SYS2",fin:"2GA",loc:"Q35"},{panel:"121VU",des:"HYDRAULIC/LGCIU/SYS1/GRND SPLY",fin:"52GA",loc:"Q34"}], test:"TASK 32-69-00-740-001-A", reset:"Green HYD OFF (ENG1 PUMP OFF, PTU OFF)\nReset LGCIU1: 拉C/B 52GA+1GA+58GA → 等15秒 → 壓回\nReset LGCIU2: 拉C/B 2GA+59GA → 等15秒 → 壓回\n完成後: ENG1 PUMP ON, PTU AUTO" },
+  { id:"nw_strg_fault",     chapter:"ME-32", name:"WHEEL N/W STRG FAULT",             fcom:"Case A (只在Engine start後立即觸發且拖桿已斷開): reset即可飛。Case B: 其他所有情況需先排故。", cb:[{panel:"121VU",des:"HYDRAULIC/BRAKING AND STEERING/SYS1/CTL",fin:"1GG",loc:"M34"},{panel:"49VU",des:"L/G/LGCIU/SYS1/NORM",fin:"1GA",loc:"C09"}], test:"TASK 32-46-00-740-001-A", reset:"停機 → PARK BRK ON → 確認拖桿已斷開 → A/SKID & N/W STRG SW OFF → ON" },
+  { id:"tyre_lo_pr",        chapter:"ME-32", name:"WHEEL TYRE LO PR",                 fcom:"Triggers when tyre pressure below 74% (in flight) or 89% (ground) of normal, or difference between same axle wheels above 21% (flight) / 15% (ground).", cb:[{panel:"121VU",des:"HYDRAULIC/TIRE/PRESS",fin:"1GV",loc:"M31"}], test:"TASK 32-49-00-710-001-A" },
+  { id:"hard_landing",      chapter:"ME-32", name:"HARD LANDING",                     fcom:"觸發後需依AMM 31-37-00-200-001-A檢查Load Report。", cb:[], test:"AMM 31-37-00-200-001-A Check of the Load-Report Parameter after Hard/Overweight Landing\nAMM 05-51-44-200-001-A Inspection after Aircraft Operation with High Lateral Acceleration" },
+
+  // ME-34 Navigation
+  { id:"nav_adr1_fault",   chapter:"ME-34", name:"NAV ADR 1(2)(3) FAULT",            fcom:"Triggers when ADR 1(2)(3) is failed.", cb:[{panel:"49VU",des:"NAV PROBES/ADIRU 1/AND AOA 1/26VAC",fin:"5FP1",loc:"F07"},{panel:"49VU",des:"NAV PROBES/ADIRU1/115VAC",fin:"4FP1",loc:"F06"},{panel:"121VU",des:"ADIRS/ADIRU/2/115VAC",fin:"4FP2",loc:"N06"}], test:"TASK 34-13-00-740-003-A" },
+  { id:"nav_ir1_fault",    chapter:"ME-34", name:"NAV IR 1(2)(3) FAULT",              fcom:"Triggers when IR 1(2)(3) is failed.", cb:[{panel:"49VU",des:"NAV PROBES/ADIRU 1/AND AOA 1/26VAC",fin:"5FP1",loc:"F07"},{panel:"49VU",des:"NAV PROBES/ADIRU1/115VAC",fin:"4FP1",loc:"F06"},{panel:"121VU",des:"ADIRS/ADIRU/2/115VAC",fin:"4FP2",loc:"N06"}], test:"TASK 34-14-00-740-004-A" },
+  { id:"nav_gps_fault",    chapter:"ME-34", name:"NAV GPS 1(2) FAULT",               fcom:"Triggers when GPS 1(2) is failed.", cb:[{panel:"49VU",des:"NAV PROBES/ADIRU1/115VAC",fin:"4FP1",loc:"F06"},{panel:"49VU",des:"NAV/MMR/1",fin:"42RT1",loc:"G12"},{panel:"121VU",des:"COM NAV/MMR/2",fin:"42RT2",loc:"L07"}], test:"TASK 34-36-00-860-801-A MMR Reset / TASK 34-36-00-740-003-A MMR BITE" },
+  { id:"nav_gpws_fault",   chapter:"ME-34", name:"NAV GPWS FAULT",                   fcom:"Triggers when GPWS fails.", cb:[{panel:"121VU",des:"EIS/GPWS/115VAC",fin:"3WZ",loc:"P07"},{panel:"121VU",des:"T/TISS",fin:"2004SG",loc:"N14"}], test:"TASK 34-72-00-740-001-A", reset:"拉C/B 3WZ → Set GPWS SYS & GPWS TERR P/B to ON → 等5秒 → 壓回C/B 3WZ" },
+  { id:"nav_tcas_fault",   chapter:"ME-34", name:"NAV TCAS FAULT",                   fcom:"TCAS failure.", cb:[{panel:"121VU",des:"TCAS",fin:"1006SG",loc:"L01"},{panel:"121VU",des:"T/TISS",fin:"2004SG",loc:"k07"}], test:"TASK 34-72-00-740-001-A", reset:"拉C/B 121VU k07（2004SG），等5秒，壓回" },
+  { id:"nav_ra_fault",     chapter:"ME-34", name:"NAV RA 1(2) FAULT",                fcom:"Triggers when RA 1(2) is failed.", cb:[{panel:"121VU",des:"COM NAV/RAD ALTM/1",fin:"1SA1",loc:"K11"},{panel:"121VU",des:"COM NAV/RAD ALTM/2",fin:"1SA2",loc:"K12"}], test:"TASK 34-42-00-740-002-A" },
+  { id:"nav_adrsb_fault",  chapter:"ME-34", name:"NAV ADS-B RPTG 1(2) FAULT",        fcom:"ADS-B reporting function failed.", cb:[{panel:"49VU",des:"COM NAV/ATC/1",fin:"5SH1",loc:"G11"},{panel:"121VU",des:"T/TISS",fin:"2004SG",loc:"N14"}], test:"TASK 34-52-00-740-004-A", eon:"TFU 31.50.00.023: ADS-B TRAF/RPTG FAULT可能是短暫雙GPS遺失造成，應排查GPS遺失，不要針對transponder換側處理。\nISI 34.52.00035: 特定地區GPS訊號干擾可觸發，訊號恢復後ECAM會自動消失。" },
+
+  // ME-36 Pneumatic
+  { id:"air_eng_bleed_fault",chapter:"ME-36", name:"AIR ENG 1(2) BLEED FAULT",      fcom:"Triggers when eng running and: both bleed temp sensors lost, bleed pressure >57PSI, or bleed temp >257°C(55s) / 270°C(15s) / 290°C(5s).", cb:[{panel:"49VU",des:"AIR BLEED/ENG 1/CTL",fin:"2HA1",loc:"D11"},{panel:"122VU",des:"AIR BLEED/ENG 1/MONG",fin:"3HA1",loc:"Z23"},{panel:"49VU",des:"AIR BLEED/ENG 2/MONG",fin:"3HA2",loc:"D12"},{panel:"122VU",des:"AIR BLEED/ENG 2/CTL",fin:"2HA2",loc:"Z22"}], test:"TASK 36-11-00-740-802-A", reset:"1. ENG BLEED (affected) OFF\n2. 若FAULT燈滅後:\n   X BLEED: AUTO\n   PACK (affected): ON\n   ENG BLEED (affected): ON\n3. 確認BLEED SD頁面閥門開啟\n4. 若重現: ENG BLEED OFF, X BLEED: OPEN" },
+  { id:"air_eng_bleed_not_clsd",chapter:"ME-36",name:"AIR ENG 1(2) BLEED NOT CLSD", fcom:"Triggers when engine running, bleed valve fails to close, and bleed pressure >57PSI or bleed temp >threshold.", cb:[], test:"TASK 36-11-00-740-802-A", reset:"1. ENG BLEED OFF\n2. 待FAULT清除後: ENG BLEED ON" },
+  { id:"air_apu_bleed_fault",chapter:"ME-36", name:"AIR APU BLEED FAULT",           fcom:"Triggers when APU running and APU bleed valve position disagrees with APU BLEED pb-sw selection.", cb:[{panel:"121VU",des:"APU/APU/CTL",fin:"2KD",loc:"L42"},{panel:"49VU",des:"AIR BLEED/ENG 1/CTL",fin:"2HA1",loc:"D11"}], test:"TASK 49-00-00-710-009-A / TASK 36-11-00-740-802-A" },
+  { id:"air_bleed12_fault",  chapter:"ME-36", name:"AIR ENG 1+2 BLEED FAULT",       fcom:"Triggers when both engine bleed supply systems lost without wing or pylon leak.", cb:[{panel:"49VU",des:"AIR BLEED/ENG 1/CTL",fin:"2HA1",loc:"D11"},{panel:"122VU",des:"AIR BLEED/ENG 1/MONG",fin:"3HA1",loc:"Z23"}], test:"若無maintenance message: 無需維修。\nTASK 36-11-00-740-802-A / TASK 36-11-00-740-810-A" },
+  { id:"bleed_monit_fault",  chapter:"ME-36", name:"BLEED MONIT SYS 1(2) FAULT",    fcom:"Triggers when BMC 1(2) is failed.", cb:[{panel:"49VU",des:"AIR BLEED/ENG 1/CTL",fin:"2HA1",loc:"D11"},{panel:"122VU",des:"AIR BLEED/ENG 2/CTL",fin:"2HA2",loc:"Z22"}], test:"TASK 36-11-00-740-802-A" },
+
+  // ME-46 Information Systems
+  { id:"data_link_atc",    chapter:"ME-46", name:"DATA LINK ATC FAULT",              fcom:"Triggers when ATC datalink communication failed or ATC datalink application lost.", cb:[{panel:"121VU",des:"ATSU 1",fin:"3TX1",loc:"K43"},{panel:"121VU",des:"ATSU 1/SWTG",fin:"5TX1",loc:"K42"}], test:"TASK 46-21-00-740-001-A", reset:"僅在以下情況reset: DCDU顯示INVALID DATA / 按鍵無效 / ADS-C/CPDLC/AOC失效\n拉C/B 3TX1 → 拉C/B 5TX1 → 等5秒 → 壓回5TX1 → 壓回3TX1" },
+  { id:"data_link_co",     chapter:"ME-46", name:"DATA LINK COMPANY FAULT",          fcom:"Triggers when failure in AOC datalink communications.", cb:[{panel:"121VU",des:"ATSU 1",fin:"3TX1",loc:"K43"},{panel:"121VU",des:"ATSU 1/SWTG",fin:"5TX1",loc:"K42"},{panel:"121VU",des:"COM NAV/VHF/3",fin:"2RC3",loc:"L05"}], test:"TASK 46-21-00-740-001-A", reset:"拉C/B 121VU L05，等5秒，壓回" },
+  { id:"datalink_atc2",    chapter:"ME-46", name:"DATALINK ATC FAULT",               fcom:"同DATA LINK ATC FAULT。", cb:[{panel:"121VU",des:"COM NAV/VHF/3",fin:"2RC3",loc:"L05"}], test:"TASK 46-21-00-740-001-A", reset:"拉C/B 121VU L05，等5秒，壓回" },
+
+  // ME-47 Inert Gas
+  { id:"fuel_inerting2",   chapter:"ME-47", name:"FUEL INERTING SYS FAULT",          fcom:"Triggers when fuel inerting system failed.", cb:[{panel:"121VU",des:"IGGS/CTRL",fin:"7YA",loc:"P28"},{panel:"122VU",des:"CSAS / CTRL",fin:"1HW",loc:"U17"}], test:"TASK 21-58-00-710-002-A" },
+
+  // ME-49 APU
+  { id:"apu_auto_shutdown", chapter:"ME-49", name:"APU AUTO(EMER) SHUT DOWN",        fcom:"AUTO SHUT DOWN: automatic shutdown for reason other than fire.\nEMER SHUT DOWN: APU SHUT OFF sw on Ext Power Panel pushed, APU FIRE pb pushed, or APU fire on ground.", cb:[{panel:"121VU",des:"APU/APU/CTL",fin:"2KD",loc:"L42"},{panel:"121VU",des:"APU/ECB/SPLY",fin:"1KD",loc:"L41"}], test:"TASK 49-00-00-710-010-A / TASK 49-00-00-710-009-A" },
+
+  // ME-52 Doors
+  { id:"door_fwd_cabin",   chapter:"ME-52", name:"DOOR L(R) FWD(AFT) CABIN",         fcom:"Triggers when cabin door not detected closed by proximity sensors.", cb:[{panel:"49VU",des:"SDAC/1/SPLY",fin:"3WV",loc:"F04"},{panel:"121VU",des:"EIS/SDAC/2/SPLY",fin:"2WV",loc:"Q06"}], test:"Refer TSM" },
+  { id:"door_cargo",       chapter:"ME-52", name:"DOOR FWD(AFT)(BULK) CARGO",         fcom:"Triggers when cargo door not detected closed by proximity sensors.", cb:[{panel:"49VU",des:"L/G/LGCIU/SYS1/NORM",fin:"1GA",loc:"C09"},{panel:"121VU",des:"HYDRAULIC/LGCIU/SYS2",fin:"2GA",loc:"Q35"}], test:"TASK 32-69-00-740-001-A" },
+  { id:"door_overwng",     chapter:"ME-52", name:"DOOR L(R) FWD(AFT) OVERWING EXIT", fcom:"Triggers when overwing exit not detected closed by proximity sensors.", cb:[{panel:"49VU",des:"SDAC/1/SPLY",fin:"3WV",loc:"F04"},{panel:"121VU",des:"EIS/SDAC/2/SPLY",fin:"2WV",loc:"Q06"}], test:"Refer TSM" },
+  { id:"door_overwng_fault",chapter:"ME-52", name:"DOOR L(R) FWD(AFT) OVERWING FAULT",fcom:"Triggers when overwing exit is failed or detected in wrong position.", cb:[{panel:"122VU",des:"FLIGHT LOCK OWD",fin:"40WN",loc:"U16"}], test:"TASK 52-22-00-710-804-A" },
+  { id:"door_slides",      chapter:"ME-52", name:"Incorrect DOOR/SLIDES status",     fcom:"DOOR/OXY頁面顯示錯誤狀態。", cb:[{panel:"49VU",des:"COM NAV/CIDS/DIR1 ESS",fin:"150RH",loc:"G01"},{panel:"121VU",des:"COM NAV/CIDS/DIR1 NORM",fin:"151RH",loc:"M05"},{panel:"49VU",des:"COM NAV/CIDS/DIR2 ESS",fin:"157RH",loc:"G02"},{panel:"121VU",des:"COM NAV/CIDS/DIR2 NORM",fin:"156RH",loc:"M06"}], test:"ECAM CP → DOOR key確認DOOR/OXY page", reset:"依序拉C/B G01+M05+G02+M06 → 等10秒 → 壓回M05→M06→G01→G02 → 等4分鐘" },
+
+  // ME-70 Engine
+  { id:"eng_fadec_sys",    chapter:"ME-70", name:"ENG 1(2) FADEC SYS FAULT",         fcom:"Triggers when FAEDC system is failed. 虛假警告可能在FADEC power-up時觸發。", cb:[{panel:"49VU",des:"ENGINE/1/FADEC A/AND EIU 1",fin:"2KS1",loc:"A04"},{panel:"121VU",des:"ENGINE/ENG1/FADEC B/AND EIU 1",fin:"4KS1",loc:"R40"}], test:"Refer TSM", reset:"若ENG MASTER仍在OFF時power-up觸發:\n- ENG MODE sel → NORM\n- 確認ENG FADEC GND PWR pb-sw → OFF\n- 拉C/B A04或A05 (49VU) for ENG1/2 FADEC channel A\n- 拉C/B R40或R41 (141VU) for ENG1/2 FADEC channel B\n- 等5秒，壓回\n若再次觸發，不得再reset，需維修", eon:"ENG2 FADEC SYS FAULT >> ENGXB-0448-N1 SPEED SNSR FAIL:\nEON ME-321-77-0001 — Post SB 73-00-0049 EEC (P/N 1020420-3-118)觀察到N1 sensor channel B在>90%N1時間歇性故障。FCS6.2暫停升級，FCS6.3開發中。出現時先執行TSM 77-11-00-810-808/809-A排故，確認為nuisance fault後依EON處置。" },
+  { id:"eng_fadec_fault",  chapter:"ME-70", name:"ENG 1(2) FADEC FAULT",             fcom:"Triggers when both FADEC channels are lost.", cb:[], test:"Refer TSM" },
+  { id:"eng_fadec_ovht",   chapter:"ME-70", name:"ENG 1(2) FADEC OVHT",              fcom:"Triggers when FADEC is in overheat condition.", cb:[], test:"Refer TSM" },
+  { id:"eng_eiu_fault",    chapter:"ME-70", name:"ENG 1(2) EIU FAULT",               fcom:"Triggers when data bus between EIU and ECU is failed.", cb:[], test:"Refer TSM", reset:"若僅在engine start後切換ENG MODE sel IGN→NORM時觸發:\nENG MODE sel NORM→IGN → 等1秒 → IGN→NORM\n注意: 僅限單側故障時可嘗試此reset" },
+  { id:"eng_fail",         chapter:"ME-70", name:"ENG 1(2) FAIL",                    fcom:"Triggers when engine core speed below idle with ENG MASTER at ON and ENG FIRE pb not pushed.", cb:[], test:"Refer TSM" },
+  { id:"eng_stall",        chapter:"ME-70", name:"ENG 1(2) STALL",                   fcom:"Triggers when engine stall is detected.", cb:[], test:"Refer TSM" },
+  { id:"eng_start_fault",  chapter:"ME-70", name:"ENG 1(2) START FAULT",             fcom:"Triggers when engine start failed: No light up / engine stall / overtemperature / hung start / no N1 rotation / starter time exceeded / TLA not at idle / hot start / starter shaft shear.", cb:[], test:"Refer TSM" },
+  { id:"eng_oil_lo_pr",    chapter:"ME-70", name:"ENG 1(2) OIL LO PR",               fcom:"OIL LO PR: pressure below UPPER RED threshold (65 PSI idle → 176 PSI high thrust)\nOIL LO PR amber: between upper red and upper amber threshold (75 PSI idle → 186 PSI high thrust).", cb:[], test:"Refer TSM" },
+  { id:"eng_oil_hi_temp",  chapter:"ME-70", name:"ENG 1(2) OIL HI TEMP",             fcom:"Triggers when oil temperature above caution threshold. Caution threshold: 152°C at idle → 146°C cruise → 141°C high thrust.", cb:[], test:"Refer TSM" },
+  { id:"eng_oil_chip",     chapter:"ME-70", name:"ENG 1(2) OIL CHIP DETECTED",       fcom:"Triggers when chip detected by EEC in engine oil system.", cb:[], test:"Refer TSM" },
+  { id:"eng_oil_filter",   chapter:"ME-70", name:"ENG 1(2) OIL FILTER CLOG",         fcom:"Triggers when oil filter is clogged.", cb:[], test:"Refer TSM" },
+  { id:"eng_high_vib",     chapter:"ME-70", name:"ENG 1(2) HIGH VIBRATION",          fcom:"Triggers when N1 vibration >5 units or N2 vibration >5 units.", cb:[], test:"Refer TSM" },
+  { id:"eng_rev_fault",    chapter:"ME-70", name:"ENG 1(2) REV FAULT",               fcom:"Triggers when thrust reverser on one engine is failed.", cb:[], test:"Refer TSM" },
+  { id:"eng_rev_locked",   chapter:"ME-70", name:"ENG 1(2) REV LOCKED",              fcom:"Triggers when reverser system failed in stowed position.", cb:[], test:"Refer TSM" },
+  { id:"eng_rev_unlocked", chapter:"ME-70", name:"ENG 1(2) REVERSE UNLOCKED",        fcom:"Triggers when one or more reverser doors not locked in stowed position in flight or on ground with no deploy order.", cb:[], test:"Refer TSM" },
+  { id:"eng_fuel_filter",  chapter:"ME-70", name:"ENG 1(2) FUEL FILTER CLOG",        fcom:"Triggers when fuel filter is clogged.", cb:[], test:"Refer TSM" },
+  { id:"eng_fuel_leak",    chapter:"ME-70", name:"ENG 1(2) FUEL LEAK",               fcom:"Triggers when abnormal difference among engines detected in fuel flow or fuel used.", cb:[], test:"Refer TSM" },
+  { id:"eng_heat_sys",     chapter:"ME-70", name:"ENG 1(2) HEAT SYS FAULT",          fcom:"Triggers when heat management system failed (fuel/oil cooling bypass valve failed, FMV sensor lost).", cb:[], test:"Refer TSM" },
+  { id:"eng_hot_air_leak", chapter:"ME-70", name:"ENG 1(2) HOT AIR LEAK",            fcom:"Triggers when hot air leak (burst duct) detected in engine compartment.", cb:[], test:"Refer TSM" },
+  { id:"eng_sensor_fault", chapter:"ME-70", name:"ENG 1(2) SENSOR FAULT",            fcom:"Triggers when N1, N2, T2, P2, burner pressure or ambient pressure sensor lost.", cb:[{panel:"49VU",des:"ENGINE/1/FADEC A/AND EIU 1",fin:"2KS1",loc:"A04"},{panel:"121VU",des:"ENGINE/ENG1/FADEC B/AND EIU 1",fin:"4KS1",loc:"R40"}], test:"Refer TSM\n若ECAM顯示ENG 1(2) SENSOR FAULT-N1 DEGRADED MODE但無maintenance message:\n確認ADIRU已上電\n執行EEC power cycle: ENG MASTER OFF → ENG MODE NORM → 拉EEC C/Bs → 等5秒 → 壓回 → ENG MODE IGN → 待ECC啟動後改回NORM" },
+  { id:"eng_turb_cool",    chapter:"ME-70", name:"ENG 1(2) TURB COOL FAULT",         fcom:"Triggers when Turbine Active Clearance Control (ACC) valve failed in closed position.", cb:[], test:"Refer TSM" },
+  { id:"eng_sys_fault",    chapter:"ME-70", name:"ENG 1(2) SYSTEM FAULT",            fcom:"Triggers when closure of 6th stage bleed valves or Turbine Case Cooling (TCC) is failed.", cb:[], test:"Refer TSM" },
+  { id:"eng_ctl_fault",    chapter:"ME-70", name:"ENG 1(2) CTL SYS FAULT",           fcom:"Triggers when failure preventing EEC from controlling engine, or TCM detected.", cb:[], test:"Refer TSM" },
+  { id:"eng_all_fail",     chapter:"ME-70", name:"ENG ALL ENGINES FAILURE",          fcom:"Triggers when all engines failed in flight.", cb:[], test:"Refer TSM" },
+  { id:"eng_dual_cooling", chapter:"ME-70", name:"ENG DUAL COOLING NOT AVAIL",       fcom:"Triggers on ground with dual cooling armed but not available (outside envelope or low starter air pressure).", cb:[], test:"Refer TSM" },
+  { id:"eng_ga_soft",      chapter:"ME-70", name:"ENG GA SOFT FAULT",                fcom:"Soft go-around function is lost.", cb:[], test:"Refer TSM" },
+  { id:"lightning_strike", chapter:"OTHER", name:"Lightning Strike",                  fcom:"執行雷擊後檢查，參考多個SRM/AMM任務。", cb:[], test:"AMM 53-15-11-200-001-A Radome\nSRM 52-10-00-283-004 Passenger Doors Burn Mark\nSRM 53-11-11-283-010 FR1-FR24 Burn Mark\n(各機身段均有對應SRM ADL任務)" },
+  { id:"fmgc_ver_dis",     chapter:"OTHER", name:"AUTO FLT FMGC VERSIONS DISAGREE", fcom:"N/A", cb:[], test:"檢查FMGC 1+2硬體及軟體P/N是否一致" },
+  { id:"fac_ver_dis",      chapter:"OTHER", name:"AUTO FLT FAC VERSIONS DISAGREE",  fcom:"N/A", cb:[], test:"TASK 22-66-00-810-912-A / 檢查FAC 1+2硬體及軟體P/N" },
+];
+
+// ============================================================
+// APP STATE
+// ============================================================
+let currentPage = 'home';
+let currentChapter = null;
+let searchQuery = '';
+
+// ============================================================
+// RENDER SIDEBAR
+// ============================================================
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  
+  let html = `
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" onclick="navHome()">
+        <span>▣ HOME / AIRCRAFT INFO</span>
+      </div>
+    </div>
+  `;
+
+  chapters.forEach(ch => {
+    const chAlerts = alerts.filter(a => a.chapter === ch.code);
+    const id = ch.code.replace(/[^a-zA-Z0-9]/g,'_');
+    html += `
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" id="hdr_${id}" onclick="toggleSection('${id}')">
+          <span>${ch.code} ${ch.title}</span>
+          <span class="arrow">▾</span>
+        </div>
+        <div class="sidebar-items" id="items_${id}">
+          ${chAlerts.map(a => `
+            <div class="sidebar-item" id="si_${a.id}" onclick="showAlert('${a.id}')">
+              <span class="dot"></span>
+              <span>${a.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  sidebar.innerHTML = html;
+}
+
+function toggleSection(id) {
+  const hdr = document.getElementById('hdr_'+id);
+  const items = document.getElementById('items_'+id);
+  hdr.classList.toggle('collapsed');
+  items.classList.toggle('collapsed');
+}
+
+function setActiveSidebarItem(alertId) {
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('si_'+alertId);
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({block:'nearest'});
+  }
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function navHome() {
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('main-home').classList.add('active');
+  document.getElementById('main-chapter').classList.remove('active');
+  document.getElementById('main-search').classList.remove('active');
+  document.getElementById('main-home').scrollIntoView();
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+function showChapter(code) {
+  const ch = chapters.find(c => c.code === code);
+  if (!ch) return;
+  const chAlerts = alerts.filter(a => a.chapter === code);
+  
+  const content = document.getElementById('main-chapter');
+  content.innerHTML = `
+    <div class="detail-page">
+      <div class="detail-back" onclick="navHome()">← BACK TO HOME</div>
+      <div class="detail-header">
+        <div class="detail-me-tag">${ch.code}</div>
+        <div>
+          <div class="detail-title">${ch.title}</div>
+          <div class="detail-sub">${chAlerts.length} ALERT(S) — CLICK TO EXPAND</div>
+        </div>
+      </div>
+      <div class="alert-grid">
+        ${chAlerts.map(a => renderAlertCard(a)).join('')}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('main-home').classList.remove('active');
+  document.getElementById('main-chapter').classList.add('active');
+  document.getElementById('main-search').classList.remove('active');
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+function showAlert(alertId, fromSearch) {
+  const a = alerts.find(x => x.id === alertId);
+  if (!a) return;
+  
+  setActiveSidebarItem(alertId);
+  showChapter(a.chapter);
+  
+  setTimeout(() => {
+    const card = document.getElementById('card_'+alertId);
+    if (card) {
+      card.scrollIntoView({behavior:'smooth', block:'start'});
+      openCard(alertId);
+    }
+  }, 50);
+}
+
+// ============================================================
+// ALERT CARD RENDER
+// ============================================================
+function renderAlertCard(a) {
+  const hasCB = a.cb && a.cb.length > 0;
+  
+  let cbHtml = '';
+  if (hasCB) {
+    let grouped = {};
+    a.cb.forEach(c => {
+      if (!grouped[c.panel]) grouped[c.panel] = [];
+      grouped[c.panel].push(c);
+    });
+    
+    cbHtml = `<table class="cb-table"><thead><tr><th>PANEL</th><th>DESIGNATION</th><th>FIN</th><th>LOC</th></tr></thead><tbody>`;
+    Object.keys(grouped).forEach(panel => {
+      grouped[panel].forEach(c => {
+        cbHtml += `<tr><td>${panel}</td><td>${c.des}</td><td>${c.fin}</td><td>${c.loc}</td></tr>`;
+      });
+    });
+    cbHtml += `</tbody></table>`;
+  } else {
+    cbHtml = `<div class="no-cb">N/A</div>`;
+  }
+
+  const fcomText = a.fcom ? a.fcom.replace(/\n/g,'<br>') : 'Refer FCOM';
+  const testText = a.test ? a.test.replace(/\n/g,'<br>') : 'Refer TSM';
+  
+  return `
+    <div class="alert-card" id="card_${a.id}">
+      <div class="alert-card-header" onclick="toggleCard('${a.id}')">
+        <div class="alert-name">${a.name}</div>
+        <div class="alert-chevron">▶</div>
+      </div>
+      <div class="alert-body">
+        <div class="info-section">
+          <div class="info-section-label">FCOM — TRIGGER CONDITION</div>
+          <div class="fcom-box">${fcomText}</div>
+        </div>
+        
+        <div class="info-section">
+          <div class="info-section-label">CIRCUIT BREAKERS</div>
+          ${cbHtml}
+        </div>
+        
+        <div class="info-section">
+          <div class="info-section-label">TEST / BITE</div>
+          <div class="test-box">${testText}</div>
+        </div>
+        
+        ${a.reset ? `
+        <div class="info-section">
+          <div class="info-section-label" style="color:var(--amber)">RESET PROCEDURE</div>
+          <div class="reset-box">${a.reset.replace(/\n/g,'<br>')}</div>
+        </div>` : ''}
+        
+        ${a.eon ? `
+        <div class="info-section">
+          <div class="info-section-label" style="color:var(--red)">⚠ EON / TFU</div>
+          <div class="eon-box">${a.eon.replace(/\n/g,'<br>')}</div>
+        </div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function toggleCard(alertId) {
+  const card = document.getElementById('card_'+alertId);
+  if (card) card.classList.toggle('open');
+}
+
+function openCard(alertId) {
+  const card = document.getElementById('card_'+alertId);
+  if (card) card.classList.add('open');
+}
+
+// ============================================================
+// HOME PAGE
+// ============================================================
+function renderHome() {
+  const aircraftData = [
+    {reg:'B-18101',msn:'10730',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+    {reg:'B-18102',msn:'10822',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+    {reg:'B-18103',msn:'10608',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+    {reg:'B-18105',msn:'10665',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+    {reg:'B-18106',msn:'10698',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+    {reg:'B-18107',msn:'10736',model:'321-271NX',eng:'PW1133G-JM',std:'ST8',wt:'53'},
+  ];
+
+  const acRows = aircraftData.map(a => `
+    <tr>
+      <td>${a.reg}</td>
+      <td>${a.msn}</td>
+      <td>${a.model}</td>
+      <td>${a.eng}</td>
+      <td>${a.std}</td>
+      <td>${a.wt}</td>
+    </tr>
+  `).join('');
+
+  const chCards = chapters.map(ch => {
+    const count = alerts.filter(a => a.chapter === ch.code).length;
+    return `
+      <div class="chapter-card" onclick="showChapter('${ch.code}')">
+        <div class="me-code">${ch.code}</div>
+        <div class="me-title">${ch.title}</div>
+        <div class="me-count">${count} alerts</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="home-page">
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;">AIRCRAFT FLEET</div>
+        <div style="background:var(--panel);border:1px solid var(--border);overflow:auto;">
+          <table style="width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px;">
+            <thead>
+              <tr style="background:rgba(245,166,35,0.08);">
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">REG</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">MSN</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">MODEL</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">ENGINE</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">STD</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--amber);font-size:9px;letter-spacing:2px;border-bottom:1px solid var(--amber-dim);">WT</th>
+              </tr>
+            </thead>
+            <tbody>${acRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--text-dim);margin-bottom:8px;">POTABLE WATER</div>
+        <table class="water-table">
+          <tr><td>≥ 3.5 小時</td><td>3/4</td></tr>
+          <tr><td>&lt; 3.5 小時</td><td>1/2</td></tr>
+        </table>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:6px;">* CABIN ITEM REPAIR PER CMM: EON ME-321-25-0001 R1</div>
+      </div>
+
+      <div style="background:rgba(224,82,82,0.08);border:1px solid rgba(224,82,82,0.3);padding:12px 16px;margin-bottom:20px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--red);letter-spacing:1px;line-height:1.8;">
+        ⚠ 這不是排故手冊！這不是排故手冊！這不是排故手冊！<br>
+        僅將可能相關的C/B或TEST列出，方便於毫無頭緒時參考。<br>
+        發動機故障請謹慎處理，維修請依據TSM！<br>
+        檔案內容將參考MANUAL、TFU、EON及維修經驗持續修訂。<br>
+        <span style="color:var(--amber)">檔名「病急亂投醫」，顧名思義……請自行斟酌服用！</span>
+      </div>
+
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--text-dim);margin-bottom:12px;">ECAM ALERT CHAPTERS</div>
+      <div class="home-grid">
+        ${chCards}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  if (q.length < 2) {
+    if (currentPage !== 'home' && currentPage !== 'chapter') navHome();
+    return;
+  }
+  doSearch(q);
+});
+
+function doSearch(q) {
+  const results = alerts.filter(a => 
+    a.name.toLowerCase().includes(q) ||
+    (a.fcom && a.fcom.toLowerCase().includes(q)) ||
+    (a.eon && a.eon.toLowerCase().includes(q)) ||
+    (a.reset && a.reset.toLowerCase().includes(q))
+  );
+
+  const searchDiv = document.getElementById('main-search');
+  const chMap = {};
+  chapters.forEach(c => chMap[c.code] = c.title);
+
+  if (results.length === 0) {
+    searchDiv.innerHTML = `<div class="search-empty">NO RESULTS FOR "${q.toUpperCase()}"</div>`;
+  } else {
+    searchDiv.innerHTML = `
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);padding:10px 14px;letter-spacing:2px;border-bottom:1px solid var(--border);">
+        ${results.length} RESULT(S) FOR "${q.toUpperCase()}"
+      </div>
+      ${results.map(a => `
+        <div class="search-result-item" onclick="showAlert('${a.id}', true)">
+          <div style="flex:1">
+            <div class="res-name">${a.name}</div>
+            <div class="res-chapter">${a.chapter} — ${chMap[a.chapter]||'Other'}</div>
+          </div>
+          <div class="res-badge">${a.chapter}</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  document.getElementById('main-home').classList.remove('active');
+  document.getElementById('main-chapter').classList.remove('active');
+  document.getElementById('main-search').classList.add('active');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  // Build sidebar
+  renderSidebar();
+  
+  // Build main areas
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div id="main-home" class="page active">${renderHome()}</div>
+    <div id="main-chapter" class="page"></div>
+    <div id="main-search" class="page"></div>
+  `;
+  
+  // Collapse all sidebar sections by default except first few
+  chapters.forEach((ch, i) => {
+    const id = ch.code.replace(/[^a-zA-Z0-9]/g,'_');
+    if (i > 2) {
+      const hdr = document.getElementById('hdr_'+id);
+      const items = document.getElementById('items_'+id);
+      if (hdr && items) {
+        hdr.classList.add('collapsed');
+        items.classList.add('collapsed');
+      }
+    }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
