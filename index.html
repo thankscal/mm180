@@ -32,7 +32,6 @@
             flex-direction: column;
         }
 
-        /* ----- 標題 ----- */
         header {
             display: flex;
             align-items: center;
@@ -56,7 +55,6 @@
             margin-left: 10px;
         }
 
-        /* ----- 上傳區 ----- */
         .upload-section {
             background: #f8fafc;
             border: 2px dashed #cbd5e1;
@@ -110,7 +108,6 @@
             color: #475569;
         }
 
-        /* ----- 狀態訊息 ----- */
         .status {
             display: none;
             padding: 10px 18px;
@@ -138,7 +135,6 @@
             border: 1px solid #bdd9ec;
         }
 
-        /* ----- 載入 ----- */
         .loading {
             display: none;
             text-align: center;
@@ -165,7 +161,6 @@
             }
         }
 
-        /* ----- 人員選擇 ----- */
         .person-selector {
             background: #f1f5f9;
             padding: 14px 22px;
@@ -199,7 +194,7 @@
             box-shadow: 0 0 0 3px rgba(30, 111, 159, 0.12);
         }
 
-        /* ----- 底部工具欄 (固定) ----- */
+        /* 底部工具欄 */
         .bottom-toolbar {
             background: #f8fafc;
             border-top: 2px solid #e9edf2;
@@ -247,6 +242,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         }
         .btn:active {
             transform: scale(0.97);
@@ -279,14 +275,13 @@
         }
         .btn-outline {
             background: transparent;
-            color: #475569;
+            color: #1e293b;
             border: 1px solid #cbd5e1;
         }
         .btn-outline:hover {
             background: #f1f5f9;
         }
 
-        /* ----- 主內容區 ----- */
         .data-area {
             display: none;
             flex: 1;
@@ -296,7 +291,6 @@
             display: block;
         }
 
-        /* ----- 日期分組 ----- */
         .date-group {
             background: #ffffff;
             border: 1px solid #e9edf2;
@@ -348,7 +342,6 @@
             transform: rotate(180deg);
         }
 
-        /* 全選checkbox (日期標題) */
         .date-select-all {
             margin-right: 4px;
             width: 18px;
@@ -432,7 +425,7 @@
             font-size: 15px;
         }
 
-        /* ----- 已選項目視圖 (覆蓋層) ----- */
+        /* 已選面板 (覆蓋層) */
         .selected-overlay {
             display: none;
             position: fixed;
@@ -556,7 +549,6 @@
             flex-wrap: wrap;
         }
 
-        /* ----- 響應式 ----- */
         @media (max-width: 720px) {
             .container {
                 padding: 14px 14px 0 14px;
@@ -655,7 +647,6 @@
             }
         }
 
-        /* 工具類 */
         .text-muted {
             color: #94a3b8;
         }
@@ -673,12 +664,10 @@
 <body>
 
     <div class="container">
-        <!-- 標題 -->
         <header>
             <h1>✈ 工作經歷整理 <small>勾選航班 · 匯總下載</small></h1>
         </header>
 
-        <!-- 上傳區 -->
         <div class="upload-section">
             <span class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 選擇檔案</span>
             <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
@@ -686,14 +675,12 @@
             <span class="upload-status" id="uploadStatus"></span>
         </div>
 
-        <!-- 狀態訊息 -->
         <div class="status" id="status"></div>
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
             <p>正在分析檔案，請稍候…</p>
         </div>
 
-        <!-- 人員選擇 -->
         <div class="person-selector" id="personSelector">
             <label for="personSelect">👤 選擇人員：</label>
             <select id="personSelect" onchange="onPersonChange(this.value)">
@@ -701,7 +688,6 @@
             </select>
         </div>
 
-        <!-- 主內容區 -->
         <div class="data-area" id="dataArea">
             <div id="flightGroups"></div>
         </div>
@@ -710,13 +696,15 @@
         <div class="bottom-toolbar" id="bottomToolbar">
             <span class="selected-count">已選 <span id="selectedCount">0</span> 項</span>
             <div class="btn-group">
+                <button class="btn btn-outline" onclick="autoSelectChinaAirlines()">✈ 自動選擇華航</button>
+                <button class="btn btn-outline" onclick="autoSelectCustomer()">🧑‍💼 自動選擇客戶</button>
                 <button class="btn btn-primary" id="viewSelectedBtn" onclick="openSelectedPanel()">📋 查看已選</button>
                 <button class="btn btn-danger" onclick="clearAllSelected()">🗑 清空</button>
             </div>
         </div>
     </div>
 
-    <!-- ===== 已選項目覆蓋層 ===== -->
+    <!-- 已選項目覆蓋層 -->
     <div class="selected-overlay" id="selectedOverlay">
         <div class="selected-panel">
             <div class="selected-panel-header">
@@ -737,12 +725,12 @@
         // ================================================================
         //  全域
         // ================================================================
-        let allData = []; // 所有航班 { id, 日期, 機號, 檢查, STA, STD, 來自, 飛往, 人員, 人員類型, ... }
+        let allData = [];
         let personList = new Set();
-        let personFlightsMap = {}; // { personName: [flight, ...] }
+        let personFlightsMap = {};
         let currentPerson = '';
         let originalFileName = '';
-        let selectedIds = new Set(); // 存放已選航班的 id
+        let selectedIds = new Set();
 
         // 姓氏列表（保留完整）
         const CHINESE_SURNAMES = [
@@ -870,7 +858,6 @@
             mergeSimilarNames();
             buildPersonFlightsMap();
 
-            // 更新UI
             updatePersonSelector();
             renderData(currentPerson || '');
             updateBottomToolbar();
@@ -878,9 +865,6 @@
             showStatus(`✅ 分析完成！共 ${allData.length} 筆航班，${personList.size} 位人員`, 'success');
         }
 
-        // ================================================================
-        //  輔助：提取日期
-        // ================================================================
         function extractDateFromSheet(sheetName, json) {
             if (/^[0-9]{4}$/.test(sheetName)) {
                 return sheetName.substring(0, 2) + '/' + sheetName.substring(2, 4);
@@ -897,9 +881,6 @@
             return sheetName;
         }
 
-        // ================================================================
-        //  處理單行
-        // ================================================================
         function processRow(row, date, id) {
             const cols = [...row];
             while (cols.length < 12) cols.push('');
@@ -946,9 +927,6 @@
             }
         }
 
-        // ================================================================
-        //  提取人名 (精簡版)
-        // ================================================================
         function extractPersonnel(str) {
             if (!str || typeof str !== 'string') return [];
             let s = str.toString().trim();
@@ -1048,9 +1026,6 @@
             return false;
         }
 
-        // ================================================================
-        //  姓名合併
-        // ================================================================
         function mergeSimilarNames() {
             const variants = {};
             const names = Array.from(personList);
@@ -1086,9 +1061,6 @@
             }
         }
 
-        // ================================================================
-        //  建立人員航班映射
-        // ================================================================
         function buildPersonFlightsMap() {
             personFlightsMap = {};
             personList.forEach(p => { personFlightsMap[p] = []; });
@@ -1105,6 +1077,54 @@
                     return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
                 });
             });
+        }
+
+        // ================================================================
+        //  時間格式化
+        // ================================================================
+        function formatTime(str) {
+            if (!str) return '';
+            let s = str.trim().replace(/[^0-9:]/g, '');
+            if (s.includes(':')) {
+                let parts = s.split(':');
+                let h = parts[0].padStart(2, '0');
+                let m = parts[1] ? parts[1].padStart(2, '0') : '00';
+                let sec = parts[2] ? parts[2].padStart(2, '0') : '00';
+                return `${h}:${m}:${sec}`;
+            } else {
+                let num = s.padStart(4, '0');
+                let h = num.substring(0, 2);
+                let m = num.substring(2, 4);
+                return `${h}:${m}:00`;
+            }
+        }
+
+        function buildTime(sta, std) {
+            const s = formatTime(sta);
+            const t = formatTime(std);
+            if (s && t) return s + ' → ' + t;
+            if (s) return s;
+            if (t) return t;
+            return '—';
+        }
+
+        function buildPlace(from, to) {
+            const f = (from || '').trim();
+            const t = (to || '').trim();
+            if (f && t) return f + ' → ' + t;
+            if (f) return f;
+            if (t) return t;
+            return '—';
+        }
+
+        // ================================================================
+        //  實際工時計算
+        // ================================================================
+        function calcHours(check) {
+            const c = (check || '').trim().toUpperCase();
+            if (c === 'TS') return 1.5;
+            if (c === 'PF') return 2.0;
+            return null;
         }
 
         // ================================================================
@@ -1131,9 +1151,6 @@
             }
         }
 
-        // ================================================================
-        //  人員切換
-        // ================================================================
         function onPersonChange(person) {
             currentPerson = person;
             if (!person) {
@@ -1158,7 +1175,6 @@
                 return;
             }
 
-            // 按日期分組
             const groups = {};
             flights.forEach(f => {
                 const d = f.日期 || '未知';
@@ -1176,7 +1192,6 @@
             sortedDates.forEach(date => {
                 const items = groups[date];
                 const count = items.length;
-                // 檢查該日期是否全部被選中
                 const allChecked = items.every(f => selectedIds.has(f.id));
 
                 html += `
@@ -1235,27 +1250,6 @@
         }
 
         // ================================================================
-        //  輔助：時間 / 地點
-        // ================================================================
-        function buildTime(sta, std) {
-            const s = (sta || '').trim();
-            const t = (std || '').trim();
-            if (s && t) return s + ' → ' + t;
-            if (s) return s;
-            if (t) return t;
-            return '—';
-        }
-
-        function buildPlace(from, to) {
-            const f = (from || '').trim();
-            const t = (to || '').trim();
-            if (f && t) return f + ' → ' + t;
-            if (f) return f;
-            if (t) return t;
-            return '—';
-        }
-
-        // ================================================================
         //  折疊/展開
         // ================================================================
         function toggleGroup(header) {
@@ -1280,33 +1274,24 @@
             } else {
                 selectedIds.delete(id);
             }
-            // 更新該航班的checkbox狀態（同步）
-            const checkbox = document.querySelector(`input[type="checkbox"][data-id="${id}"]`);
-            if (checkbox && checkbox.checked !== checked) {
-                checkbox.checked = checked;
-            }
-            // 更新日期全選狀態
+            const cb = document.querySelector(`input[type="checkbox"][data-id="${id}"]`);
+            if (cb && cb.checked !== checked) cb.checked = checked;
             updateDateSelectAll(id);
             updateBottomToolbar();
         }
 
-        // 更新某個日期組的全選checkbox狀態
         function updateDateSelectAll(flightId) {
-            // 找到該航班所在的日期組
             const flight = allData.find(f => f.id === flightId);
             if (!flight) return;
             const date = flight.日期;
             const group = document.querySelector(`.date-group[data-date="${date}"]`);
             if (!group) return;
             const items = group.querySelectorAll('tbody input[type="checkbox"]');
-            const allChecked = Array.from(items).every(cb => cb.checked);
+            const allChecked = items.length > 0 && Array.from(items).every(cb => cb.checked);
             const selectAll = group.querySelector('.date-select-all');
-            if (selectAll) {
-                selectAll.checked = allChecked;
-            }
+            if (selectAll) selectAll.checked = allChecked;
         }
 
-        // 日期全選/取消
         function toggleDateAll(selectAllCb, date) {
             const checked = selectAllCb.checked;
             const group = document.querySelector(`.date-group[data-date="${date}"]`);
@@ -1314,14 +1299,65 @@
             const items = group.querySelectorAll('tbody input[type="checkbox"]');
             items.forEach(cb => {
                 const id = parseInt(cb.dataset.id);
-                if (checked) {
-                    selectedIds.add(id);
-                } else {
-                    selectedIds.delete(id);
-                }
+                if (checked) selectedIds.add(id);
+                else selectedIds.delete(id);
                 cb.checked = checked;
             });
             updateBottomToolbar();
+        }
+
+        // ================================================================
+        //  同步所有 checkbox
+        // ================================================================
+        function syncCheckboxes() {
+            document.querySelectorAll('.flight-table input[type="checkbox"][data-id]').forEach(cb => {
+                const id = parseInt(cb.dataset.id);
+                cb.checked = selectedIds.has(id);
+            });
+            document.querySelectorAll('.date-group').forEach(group => {
+                const date = group.dataset.date;
+                if (!date) return;
+                const items = group.querySelectorAll('tbody input[type="checkbox"]');
+                const allChecked = items.length > 0 && Array.from(items).every(cb => cb.checked);
+                const selectAll = group.querySelector('.date-select-all');
+                if (selectAll) selectAll.checked = allChecked;
+            });
+            updateBottomToolbar();
+        }
+
+        // ================================================================
+        //  自動選擇
+        // ================================================================
+        function autoSelectChinaAirlines() {
+            if (!currentPerson) {
+                showStatus('請先選擇人員', 'info');
+                return;
+            }
+            selectedIds.clear();
+            const flights = personFlightsMap[currentPerson] || [];
+            flights.forEach(f => {
+                if (f.機號 === 'B-18') {
+                    selectedIds.add(f.id);
+                }
+            });
+            syncCheckboxes();
+            showStatus(`已自動選擇華航 (B-18) 共 ${selectedIds.size} 筆`, 'info');
+        }
+
+        function autoSelectCustomer() {
+            if (!currentPerson) {
+                showStatus('請先選擇人員', 'info');
+                return;
+            }
+            selectedIds.clear();
+            const flights = personFlightsMap[currentPerson] || [];
+            flights.forEach(f => {
+                if (f.機號 !== 'B-18') {
+                    selectedIds.add(f.id);
+                }
+            });
+            syncCheckboxes();
+            showStatus(`已自動選擇客戶 (非 B-18) 共 ${selectedIds.size} 筆`, 'info');
         }
 
         // ================================================================
@@ -1330,30 +1366,19 @@
         function updateBottomToolbar() {
             const count = selectedIds.size;
             document.getElementById('selectedCount').textContent = count;
-            const viewBtn = document.getElementById('viewSelectedBtn');
-            viewBtn.disabled = (count === 0);
+            document.getElementById('viewSelectedBtn').disabled = (count === 0);
         }
 
-        // ================================================================
-        //  清空所有已選
-        // ================================================================
         function clearAllSelected() {
             if (selectedIds.size === 0) return;
             if (!confirm('確定要清空所有已選項目嗎？')) return;
             selectedIds.clear();
-            // 更新所有checkbox
-            document.querySelectorAll('.flight-table input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-            document.querySelectorAll('.date-select-all').forEach(cb => {
-                cb.checked = false;
-            });
-            updateBottomToolbar();
+            syncCheckboxes();
             showStatus('已清空所有選擇', 'info');
         }
 
         // ================================================================
-        //  已選項目面板
+        //  已選面板
         // ================================================================
         function openSelectedPanel() {
             if (selectedIds.size === 0) {
@@ -1372,14 +1397,12 @@
 
         function renderSelectedPanel() {
             const body = document.getElementById('selectedPanelBody');
-            // 獲取所有已選航班
             const selectedFlights = allData.filter(f => selectedIds.has(f.id));
             if (selectedFlights.length === 0) {
                 body.innerHTML = `<div class="selected-empty">尚無已選項目</div>`;
                 return;
             }
 
-            // 按日期排序
             selectedFlights.sort((a, b) => {
                 const da = a.日期.split('/').map(Number);
                 const db = b.日期.split('/').map(Number);
@@ -1408,15 +1431,12 @@
             body.innerHTML = html;
         }
 
-        // 從已選中移除單項
         function removeSelectedItem(id) {
             selectedIds.delete(id);
-            // 同步更新主列表的checkbox
             const cb = document.querySelector(`.flight-table input[type="checkbox"][data-id="${id}"]`);
             if (cb) cb.checked = false;
             updateDateSelectAll(id);
             updateBottomToolbar();
-            // 重新渲染已選面板
             renderSelectedPanel();
             if (selectedIds.size === 0) {
                 closeSelectedPanel();
@@ -1424,18 +1444,11 @@
             }
         }
 
-        // 點擊覆蓋層外部關閉
         document.getElementById('selectedOverlay').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeSelectedPanel();
-            }
+            if (e.target === this) closeSelectedPanel();
         });
-
-        // ESC關閉
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeSelectedPanel();
-            }
+            if (e.key === 'Escape') closeSelectedPanel();
         });
 
         // ================================================================
@@ -1453,20 +1466,19 @@
                 return;
             }
 
-            // 準備資料
+            // 準備資料（不含時間，加入實際工時）
             const rows = selectedFlights.map(f => {
-                const time = buildTime(f.STA, f.STD);
                 const place = buildPlace(f.來自, f.飛往);
+                const hours = calcHours(f.檢查);
                 return {
                     '日期': f.日期 || '',
-                    '時間': time,
                     '機號': f.機號 || '',
                     '地點': place,
-                    '任務描述': f.檢查 || ''
+                    '任務描述': f.檢查 || '',
+                    '實際工時': hours !== null ? hours : ''
                 };
             });
 
-            // 按日期排序
             rows.sort((a, b) => {
                 const da = a['日期'].split('/').map(Number);
                 const db = b['日期'].split('/').map(Number);
@@ -1483,9 +1495,6 @@
             closeSelectedPanel();
         }
 
-        // ================================================================
-        //  產生檔名
-        // ================================================================
         function generateFileName(originalName, flights) {
             let monthStr = '';
             let yearStr = '';
@@ -1573,13 +1582,7 @@
             else el.classList.remove('show');
         }
 
-        // ================================================================
-        //  初始化
-        // ================================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // 預設狀態
-        });
+        document.addEventListener('DOMContentLoaded', function() {});
     </script>
-
 </body>
 </html>
