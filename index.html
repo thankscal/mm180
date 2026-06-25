@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
     </script>
     <style>
-        /* 樣式保持不變，與之前相同，此處省略以節省篇幅，但實際會完整輸出 */
+        /* 樣式保持不變，與之前相同，為節省篇幅此處省略，但實際會完整輸出 */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -640,23 +640,6 @@
         }
         .flex-1 {
             flex: 1;
-        }
-        .tag {
-            display: inline-block;
-            background: #e2e8f0;
-            border-radius: 12px;
-            padding: 0 10px;
-            font-size: 12px;
-            color: #1e293b;
-            margin-right: 4px;
-        }
-        .tag-blue {
-            background: #dbeafe;
-            color: #1e3a5f;
-        }
-        .tag-green {
-            background: #d1fae5;
-            color: #065f46;
         }
     </style>
 </head>
@@ -1322,7 +1305,7 @@
         }
 
         // ================================================================
-        //  自動選擇 - 修正版
+        //  自動選擇 - 一天一條
         // ================================================================
         function autoSelectChinaAirlines() {
             if (!currentPerson) {
@@ -1332,20 +1315,25 @@
             selectedIds.clear();
             const flights = personFlightsMap[currentPerson] || [];
 
-            // 華航：機號以 "B-18" 開頭
+            // 按日期分組
+            const dateGroups = {};
             flights.forEach(f => {
-                if (f.機號 && f.機號.startsWith('B-18')) {
-                    selectedIds.add(f.id);
+                if (!dateGroups[f.日期]) dateGroups[f.日期] = [];
+                dateGroups[f.日期].push(f);
+            });
+
+            // 對於每個日期，檢查是否有華航航班（以 B-18 開頭），若有則取第一個華航航班
+            Object.keys(dateGroups).forEach(date => {
+                const dayFlights = dateGroups[date];
+                const chinaFlight = dayFlights.find(f => f.機號 && f.機號.startsWith('B-18'));
+                if (chinaFlight) {
+                    selectedIds.add(chinaFlight.id);
                 }
             });
 
             syncCheckboxes();
-            const dayCount = new Set();
-            selectedIds.forEach(id => {
-                const f = allData.find(d => d.id === id);
-                if (f) dayCount.add(f.日期);
-            });
-            showStatus(`✈ 已選華航 (B-18*) 共 ${dayCount.size} 日，${selectedIds.size} 筆航班`, 'info');
+            const dayCount = selectedIds.size; // 因為一天一條，數量等於天數
+            showStatus(`✈ 已選華航 (B-18*) 共 ${dayCount} 日 (${selectedIds.size} 筆)`, 'info');
         }
 
         function autoSelectCustomer() {
@@ -1356,20 +1344,28 @@
             selectedIds.clear();
             const flights = personFlightsMap[currentPerson] || [];
 
-            // 客戶：機號不以 "B-18" 開頭
+            // 按日期分組
+            const dateGroups = {};
             flights.forEach(f => {
-                if (f.機號 && !f.機號.startsWith('B-18')) {
-                    selectedIds.add(f.id);
+                if (!dateGroups[f.日期]) dateGroups[f.日期] = [];
+                dateGroups[f.日期].push(f);
+            });
+
+            // 對於每個日期，檢查是否有華航航班（以 B-18 開頭），若沒有則取該日期第一個航班
+            Object.keys(dateGroups).forEach(date => {
+                const dayFlights = dateGroups[date];
+                const hasChina = dayFlights.some(f => f.機號 && f.機號.startsWith('B-18'));
+                if (!hasChina) {
+                    // 取該日第一個航班（或可選任意）
+                    if (dayFlights.length > 0) {
+                        selectedIds.add(dayFlights[0].id);
+                    }
                 }
             });
 
             syncCheckboxes();
-            const dayCount = new Set();
-            selectedIds.forEach(id => {
-                const f = allData.find(d => d.id === id);
-                if (f) dayCount.add(f.日期);
-            });
-            showStatus(`🧑‍💼 已選客戶 (非 B-18*) 共 ${dayCount.size} 日，${selectedIds.size} 筆航班`, 'info');
+            const dayCount = selectedIds.size;
+            showStatus(`🧑‍💼 已選客戶 (非 B-18*) 共 ${dayCount} 日 (${selectedIds.size} 筆)`, 'info');
         }
 
         // ================================================================
@@ -1656,4 +1652,4 @@
     </script>
 
 </body>
-</html>
+    </html>
