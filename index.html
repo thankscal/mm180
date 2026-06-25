@@ -194,7 +194,6 @@
             box-shadow: 0 0 0 3px rgba(30, 111, 159, 0.12);
         }
 
-        /* 底部工具欄 */
         .bottom-toolbar {
             background: #f8fafc;
             border-top: 2px solid #e9edf2;
@@ -425,7 +424,7 @@
             font-size: 15px;
         }
 
-        /* 已選面板 (覆蓋層) */
+        /* 已選面板 */
         .selected-overlay {
             display: none;
             position: fixed;
@@ -489,46 +488,66 @@
             padding: 18px 24px 24px 24px;
         }
 
-        .selected-item {
+        /* 每日匯總卡片 */
+        .summary-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border: 1px solid #e9edf2;
+            transition: background 0.15s;
+        }
+        .summary-card:hover {
+            background: #f1f6fd;
+        }
+        .summary-card .card-header {
             display: flex;
             align-items: center;
-            padding: 10px 14px;
-            border-bottom: 1px solid #edf2f7;
             gap: 12px;
-            font-size: 14px;
-            transition: background 0.1s;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
         }
-        .selected-item:hover {
-            background: #f8faff;
+        .summary-card .card-date {
+            font-weight: 700;
+            font-size: 16px;
+            color: #0b3b5c;
+            min-width: 70px;
         }
-        .selected-item .item-info {
-            flex: 1;
+        .summary-card .card-count {
+            background: #e2e8f0;
+            border-radius: 30px;
+            padding: 0 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .summary-card .card-details {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px 18px;
-        }
-        .selected-item .item-info .date-tag {
-            font-weight: 600;
-            color: #0b3b5c;
-            min-width: 60px;
-        }
-        .selected-item .item-info .detail {
+            gap: 4px 18px;
+            font-size: 14px;
             color: #1e293b;
+            margin-top: 4px;
         }
-        .selected-item .item-info .detail.muted {
-            color: #94a3b8;
+        .summary-card .card-details .label {
+            color: #64748b;
+            font-weight: 400;
         }
-        .selected-item .remove-btn {
+        .summary-card .card-hours {
+            font-weight: 600;
+            color: #0b5e3c;
+        }
+        .summary-card .remove-btn-sm {
             background: none;
             border: none;
             color: #b91c1c;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
-            padding: 0 6px;
-            transition: color 0.2s;
+            padding: 0 4px;
+            margin-left: auto;
             font-weight: 600;
+            transition: color 0.2s;
         }
-        .selected-item .remove-btn:hover {
+        .summary-card .remove-btn-sm:hover {
             color: #991515;
         }
 
@@ -615,12 +634,8 @@
             .selected-panel-body {
                 padding: 12px 14px 16px 14px;
             }
-            .selected-item {
-                flex-wrap: wrap;
-                padding: 8px 10px;
-            }
-            .selected-item .item-info {
-                gap: 4px 12px;
+            .summary-card {
+                padding: 12px 14px;
             }
             .selected-panel-footer {
                 padding: 12px 14px;
@@ -659,13 +674,30 @@
         .flex-1 {
             flex: 1;
         }
+        .tag {
+            display: inline-block;
+            background: #e2e8f0;
+            border-radius: 12px;
+            padding: 0 10px;
+            font-size: 12px;
+            color: #1e293b;
+            margin-right: 4px;
+        }
+        .tag-blue {
+            background: #dbeafe;
+            color: #1e3a5f;
+        }
+        .tag-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <header>
-            <h1>✈ 工作經歷整理 <small>勾選航班 · 匯總下載</small></h1>
+            <h1>✈ 工作經歷整理 <small>勾選航班 · 按日匯總</small></h1>
         </header>
 
         <div class="upload-section">
@@ -694,7 +726,7 @@
 
         <!-- 底部工具欄 -->
         <div class="bottom-toolbar" id="bottomToolbar">
-            <span class="selected-count">已選 <span id="selectedCount">0</span> 項</span>
+            <span class="selected-count">已選 <span id="selectedCount">0</span> 日</span>
             <div class="btn-group">
                 <button class="btn btn-outline" onclick="autoSelectChinaAirlines()">✈ 自動選擇華航</button>
                 <button class="btn btn-outline" onclick="autoSelectCustomer()">🧑‍💼 自動選擇客戶</button>
@@ -708,7 +740,7 @@
     <div class="selected-overlay" id="selectedOverlay">
         <div class="selected-panel">
             <div class="selected-panel-header">
-                <h2>📋 已選項目匯總</h2>
+                <h2>📋 已選項目匯總（每日一筆）</h2>
                 <button class="close-btn" onclick="closeSelectedPanel()">✕</button>
             </div>
             <div class="selected-panel-body" id="selectedPanelBody">
@@ -1080,7 +1112,7 @@
         }
 
         // ================================================================
-        //  時間格式化
+        //  時間格式化 00:00:00
         // ================================================================
         function formatTime(str) {
             if (!str) return '';
@@ -1165,7 +1197,7 @@
         }
 
         // ================================================================
-        //  渲染資料
+        //  渲染主列表
         // ================================================================
         function renderData(person) {
             const container = document.getElementById('flightGroups');
@@ -1306,9 +1338,6 @@
             updateBottomToolbar();
         }
 
-        // ================================================================
-        //  同步所有 checkbox
-        // ================================================================
         function syncCheckboxes() {
             document.querySelectorAll('.flight-table input[type="checkbox"][data-id]').forEach(cb => {
                 const id = parseInt(cb.dataset.id);
@@ -1326,7 +1355,7 @@
         }
 
         // ================================================================
-        //  自動選擇
+        //  自動選擇 - 一天一條
         // ================================================================
         function autoSelectChinaAirlines() {
             if (!currentPerson) {
@@ -1335,13 +1364,29 @@
             }
             selectedIds.clear();
             const flights = personFlightsMap[currentPerson] || [];
+
+            // 找出所有包含 B-18 的日期
+            const dateHasB18 = new Set();
             flights.forEach(f => {
                 if (f.機號 === 'B-18') {
+                    dateHasB18.add(f.日期);
+                }
+            });
+
+            // 勾選這些日期下所有 B-18 航班
+            flights.forEach(f => {
+                if (dateHasB18.has(f.日期) && f.機號 === 'B-18') {
                     selectedIds.add(f.id);
                 }
             });
+
             syncCheckboxes();
-            showStatus(`已自動選擇華航 (B-18) 共 ${selectedIds.size} 筆`, 'info');
+            const dayCount = new Set();
+            selectedIds.forEach(id => {
+                const f = allData.find(d => d.id === id);
+                if (f) dayCount.add(f.日期);
+            });
+            showStatus(`✈ 已選華航 (B-18) 共 ${dayCount.size} 日，${selectedIds.size} 筆航班`, 'info');
         }
 
         function autoSelectCustomer() {
@@ -1351,20 +1396,42 @@
             }
             selectedIds.clear();
             const flights = personFlightsMap[currentPerson] || [];
+
+            // 找出所有不包含 B-18 的日期
+            const dateHasB18 = new Set();
             flights.forEach(f => {
-                if (f.機號 !== 'B-18') {
+                if (f.機號 === 'B-18') {
+                    dateHasB18.add(f.日期);
+                }
+            });
+
+            // 勾選不包含 B-18 的日期下的所有航班
+            flights.forEach(f => {
+                if (!dateHasB18.has(f.日期)) {
                     selectedIds.add(f.id);
                 }
             });
+
             syncCheckboxes();
-            showStatus(`已自動選擇客戶 (非 B-18) 共 ${selectedIds.size} 筆`, 'info');
+            const dayCount = new Set();
+            selectedIds.forEach(id => {
+                const f = allData.find(d => d.id === id);
+                if (f) dayCount.add(f.日期);
+            });
+            showStatus(`🧑‍💼 已選客戶 (非 B-18) 共 ${dayCount.size} 日，${selectedIds.size} 筆航班`, 'info');
         }
 
         // ================================================================
         //  底部工具欄
         // ================================================================
         function updateBottomToolbar() {
-            const count = selectedIds.size;
+            // 計算有被選中航班的日期數
+            const days = new Set();
+            selectedIds.forEach(id => {
+                const f = allData.find(d => d.id === id);
+                if (f) days.add(f.日期);
+            });
+            const count = days.size;
             document.getElementById('selectedCount').textContent = count;
             document.getElementById('viewSelectedBtn').disabled = (count === 0);
         }
@@ -1378,14 +1445,36 @@
         }
 
         // ================================================================
-        //  已選面板
+        //  按日期匯總（工具函數）
+        // ================================================================
+        function groupFlightsByDate(flightList) {
+            const groups = {};
+            flightList.forEach(f => {
+                const d = f.日期 || '未知';
+                if (!groups[d]) groups[d] = [];
+                groups[d].push(f);
+            });
+            const sortedDates = Object.keys(groups).sort((a, b) => {
+                const da = a.split('/').map(Number);
+                const db = b.split('/').map(Number);
+                return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
+            });
+            return sortedDates.map(date => ({
+                date: date,
+                flights: groups[date]
+            }));
+        }
+
+        // ================================================================
+        //  已選面板（每日匯總）
         // ================================================================
         function openSelectedPanel() {
-            if (selectedIds.size === 0) {
+            const selectedFlights = allData.filter(f => selectedIds.has(f.id));
+            if (selectedFlights.length === 0) {
                 showStatus('尚未選擇任何航班', 'info');
                 return;
             }
-            renderSelectedPanel();
+            renderSelectedPanel(selectedFlights);
             document.getElementById('selectedOverlay').classList.add('show');
             document.body.style.overflow = 'hidden';
         }
@@ -1395,35 +1484,57 @@
             document.body.style.overflow = '';
         }
 
-        function renderSelectedPanel() {
+        function renderSelectedPanel(selectedFlights) {
             const body = document.getElementById('selectedPanelBody');
-            const selectedFlights = allData.filter(f => selectedIds.has(f.id));
-            if (selectedFlights.length === 0) {
+            if (!selectedFlights || selectedFlights.length === 0) {
                 body.innerHTML = `<div class="selected-empty">尚無已選項目</div>`;
                 return;
             }
 
-            selectedFlights.sort((a, b) => {
-                const da = a.日期.split('/').map(Number);
-                const db = b.日期.split('/').map(Number);
-                return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
-            });
+            const grouped = groupFlightsByDate(selectedFlights);
 
             let html = '';
-            selectedFlights.forEach(f => {
-                const time = buildTime(f.STA, f.STD);
-                const place = buildPlace(f.來自, f.飛往);
-                const task = f.檢查 || '—';
+            grouped.forEach(item => {
+                const date = item.date;
+                const flights = item.flights;
+                const count = flights.length;
+
+                // 匯總資訊
+                const acSet = new Set();
+                const placeSet = new Set();
+                const taskSet = new Set();
+                let totalHours = 0;
+
+                flights.forEach(f => {
+                    acSet.add(f.機號 || '—');
+                    const place = buildPlace(f.來自, f.飛往);
+                    if (place !== '—') placeSet.add(place);
+                    const task = f.檢查 || '—';
+                    if (task !== '—') taskSet.add(task);
+                    const h = calcHours(f.檢查);
+                    if (h !== null) totalHours += h;
+                });
+
+                const acStr = Array.from(acSet).join('、');
+                const placeStr = Array.from(placeSet).join('、');
+                const taskStr = Array.from(taskSet).join('、');
+
+                // 取得該日期下所有航班 ID (用於移除)
+                const flightIds = flights.map(f => f.id);
+
                 html += `
-                    <div class="selected-item" data-id="${f.id}">
-                        <div class="item-info">
-                            <span class="date-tag">${f.日期}</span>
-                            <span class="detail">${time}</span>
-                            <span class="detail">${f.機號 || '—'}</span>
-                            <span class="detail">${place}</span>
-                            <span class="detail muted">${task}</span>
+                    <div class="summary-card" data-date="${date}">
+                        <div class="card-header">
+                            <span class="card-date">📅 ${date}</span>
+                            <span class="card-count">${count} 筆</span>
+                            <span class="card-hours">🕒 ${totalHours.toFixed(1)} 小時</span>
+                            <button class="remove-btn-sm" onclick="removeDateFromSelected('${date}')" title="移除該日所有航班">✕</button>
                         </div>
-                        <button class="remove-btn" onclick="removeSelectedItem(${f.id})" title="移除">✕</button>
+                        <div class="card-details">
+                            <span><span class="label">機號：</span>${acStr}</span>
+                            <span><span class="label">地點：</span>${placeStr || '—'}</span>
+                            <span><span class="label">任務：</span>${taskStr || '—'}</span>
+                        </div>
                     </div>
                 `;
             });
@@ -1431,16 +1542,26 @@
             body.innerHTML = html;
         }
 
-        function removeSelectedItem(id) {
-            selectedIds.delete(id);
-            const cb = document.querySelector(`.flight-table input[type="checkbox"][data-id="${id}"]`);
-            if (cb) cb.checked = false;
-            updateDateSelectAll(id);
+        // 從已選中移除某個日期的所有航班
+        function removeDateFromSelected(date) {
+            const toRemove = [];
+            selectedIds.forEach(id => {
+                const f = allData.find(d => d.id === id);
+                if (f && f.日期 === date) toRemove.push(id);
+            });
+            toRemove.forEach(id => selectedIds.delete(id));
+
+            // 同步主列表 checkbox
+            syncCheckboxes();
             updateBottomToolbar();
-            renderSelectedPanel();
-            if (selectedIds.size === 0) {
+
+            // 重新渲染已選面板
+            const remaining = allData.filter(f => selectedIds.has(f.id));
+            if (remaining.length === 0) {
                 closeSelectedPanel();
                 showStatus('已清空所有選擇', 'info');
+            } else {
+                renderSelectedPanel(remaining);
             }
         }
 
@@ -1452,37 +1573,43 @@
         });
 
         // ================================================================
-        //  下載已選項目為 Excel
+        //  下載 Excel（每日匯總）
         // ================================================================
         function downloadSelected() {
-            if (selectedIds.size === 0) {
-                showStatus('沒有已選項目可下載', 'error');
-                return;
-            }
-
             const selectedFlights = allData.filter(f => selectedIds.has(f.id));
             if (selectedFlights.length === 0) {
                 showStatus('沒有已選項目可下載', 'error');
                 return;
             }
 
-            // 準備資料（不含時間，加入實際工時）
-            const rows = selectedFlights.map(f => {
-                const place = buildPlace(f.來自, f.飛往);
-                const hours = calcHours(f.檢查);
-                return {
-                    '日期': f.日期 || '',
-                    '機號': f.機號 || '',
-                    '地點': place,
-                    '任務描述': f.檢查 || '',
-                    '實際工時': hours !== null ? hours : ''
-                };
-            });
+            const grouped = groupFlightsByDate(selectedFlights);
 
-            rows.sort((a, b) => {
-                const da = a['日期'].split('/').map(Number);
-                const db = b['日期'].split('/').map(Number);
-                return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
+            const rows = grouped.map(item => {
+                const date = item.date;
+                const flights = item.flights;
+
+                const acSet = new Set();
+                const placeSet = new Set();
+                const taskSet = new Set();
+                let totalHours = 0;
+
+                flights.forEach(f => {
+                    acSet.add(f.機號 || '—');
+                    const place = buildPlace(f.來自, f.飛往);
+                    if (place !== '—') placeSet.add(place);
+                    const task = f.檢查 || '—';
+                    if (task !== '—') taskSet.add(task);
+                    const h = calcHours(f.檢查);
+                    if (h !== null) totalHours += h;
+                });
+
+                return {
+                    '日期': date,
+                    '機號': Array.from(acSet).join('、'),
+                    '地點': Array.from(placeSet).join('、') || '—',
+                    '任務描述': Array.from(taskSet).join('、') || '—',
+                    '實際工時': totalHours
+                };
             });
 
             const ws = XLSX.utils.json_to_sheet(rows);
@@ -1491,7 +1618,7 @@
 
             const fileName = generateFileName(originalFileName, selectedFlights);
             XLSX.writeFile(wb, fileName);
-            showStatus(`✅ 已下載 ${fileName} (${rows.length} 筆)`, 'success');
+            showStatus(`✅ 已下載 ${fileName} (${rows.length} 日)`, 'success');
             closeSelectedPanel();
         }
 
@@ -1584,5 +1711,6 @@
 
         document.addEventListener('DOMContentLoaded', function() {});
     </script>
+
 </body>
 </html>
