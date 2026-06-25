@@ -1,0 +1,1321 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航班資料分析工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+        }
+
+        body {
+            background: #f0f4f8;
+            padding: 24px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px 32px 36px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ----- 標題 ----- */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0b3b5c;
+            letter-spacing: 1px;
+        }
+
+        header h1 small {
+            font-size: 15px;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: 12px;
+        }
+
+        /* ----- 上傳區 ----- */
+        .upload-section {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 22px 28px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px 24px;
+            transition: border-color 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .upload-section:hover {
+            border-color: #94a3b8;
+        }
+
+        .upload-btn {
+            display: inline-block;
+            background: #1e6f9f;
+            color: #fff;
+            padding: 10px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: background 0.2s;
+            border: none;
+            user-select: none;
+        }
+
+        .upload-btn:hover {
+            background: #15557a;
+        }
+
+        .file-name {
+            color: #0b5e3c;
+            font-weight: 500;
+            font-size: 15px;
+            background: #e6f7ec;
+            padding: 6px 16px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .file-name.empty {
+            color: #94a3b8;
+            background: transparent;
+        }
+
+        .upload-status {
+            margin-left: auto;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        /* ----- 人員選擇 ----- */
+        .person-selector {
+            background: #f1f5f9;
+            padding: 18px 24px;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px 20px;
+            margin-bottom: 24px;
+        }
+
+        .person-selector.show {
+            display: flex;
+        }
+
+        .person-selector label {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1e293b;
+        }
+
+        .person-selector select {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 16px;
+            background: #fff;
+            min-width: 180px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .person-selector select:focus {
+            border-color: #1e6f9f;
+            box-shadow: 0 0 0 3px rgba(30, 111, 159, 0.15);
+        }
+
+        .person-total-badge {
+            margin-left: auto;
+            font-size: 15px;
+            color: #1e293b;
+            background: #e2e8f0;
+            padding: 4px 18px;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+
+        .person-total-badge span {
+            color: #0b3b5c;
+            font-weight: 700;
+        }
+
+        /* ----- 資料展示 ----- */
+        .data-area {
+            display: none;
+            margin-top: 6px;
+        }
+
+        .data-area.show {
+            display: block;
+        }
+
+        .date-group {
+            background: #ffffff;
+            border: 1px solid #e9edf2;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: box-shadow 0.15s;
+        }
+
+        .date-group:hover {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        .date-header {
+            display: flex;
+            align-items: center;
+            padding: 14px 22px;
+            background: #fafcff;
+            cursor: pointer;
+            user-select: none;
+            gap: 12px;
+            transition: background 0.15s;
+            border-bottom: 1px solid transparent;
+        }
+
+        .date-header:hover {
+            background: #f1f6fd;
+        }
+
+        .date-header .date-label {
+            font-weight: 600;
+            font-size: 17px;
+            color: #0b3b5c;
+            min-width: 80px;
+        }
+
+        .date-header .flight-count-badge {
+            background: #e2e8f0;
+            color: #1e293b;
+            border-radius: 30px;
+            padding: 2px 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .date-header .expand-icon {
+            margin-left: auto;
+            font-size: 18px;
+            color: #94a3b8;
+            transition: transform 0.2s;
+        }
+
+        .date-header .expand-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .date-body {
+            padding: 0 22px 18px 22px;
+            display: none;
+            overflow-x: auto;
+        }
+
+        .date-body.open {
+            display: block;
+        }
+
+        /* 航班表格 (在日期內) */
+        .flight-table-wrap {
+            margin-top: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ecf1f7;
+        }
+
+        .flight-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 600px;
+        }
+
+        .flight-table th {
+            background: #f1f6fd;
+            color: #1e3a5f;
+            font-weight: 600;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 2px solid #dce3ec;
+            white-space: nowrap;
+        }
+
+        .flight-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: middle;
+        }
+
+        .flight-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .flight-table tr:hover td {
+            background: #f8faff;
+        }
+
+        .flight-table .col-time {
+            white-space: nowrap;
+        }
+        .flight-table .col-ac {
+            white-space: nowrap;
+        }
+        .flight-table .col-place {
+            white-space: nowrap;
+        }
+        .flight-table .col-hours {
+            text-align: center;
+            font-weight: 600;
+            color: #0b5e3c;
+        }
+        .flight-table .col-task {
+            max-width: 120px;
+            word-break: break-word;
+        }
+        .flight-table .col-barcode {
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .no-flight-msg {
+            padding: 28px 0;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        /* ----- 下載按鈕 ----- */
+        .download-area {
+            display: none;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 2px solid #e9edf2;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .download-area.show {
+            display: flex;
+        }
+
+        .download-btn {
+            background: #0b5e3c;
+            color: #fff;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            background: #094b30;
+        }
+
+        .download-btn:active {
+            transform: scale(0.97);
+        }
+
+        .download-btn:disabled {
+            background: #b9c4d0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ----- 狀態訊息 ----- */
+        .status {
+            display: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            font-size: 15px;
+        }
+        .status.success {
+            display: block;
+            background: #e6f7ec;
+            color: #0b5e3c;
+            border: 1px solid #b8e0cc;
+        }
+        .status.error {
+            display: block;
+            background: #fde8e8;
+            color: #b91c1c;
+            border: 1px solid #f5c6c6;
+        }
+        .status.info {
+            display: block;
+            background: #e6f0fa;
+            color: #1e6f9f;
+            border: 1px solid #bdd9ec;
+        }
+
+        /* ----- 載入 ----- */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 36px 0;
+        }
+        .loading.show {
+            display: block;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #1e6f9f;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ----- 響應式 ----- */
+        @media (max-width: 720px) {
+            .container {
+                padding: 16px 14px;
+            }
+            header h1 {
+                font-size: 20px;
+            }
+            header h1 small {
+                font-size: 13px;
+                display: block;
+                margin-left: 0;
+                margin-top: 4px;
+            }
+            .upload-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .upload-status {
+                margin-left: 0;
+                text-align: right;
+                font-size: 13px;
+            }
+            .person-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .person-total-badge {
+                margin-left: 0;
+                text-align: center;
+            }
+            .date-header {
+                flex-wrap: wrap;
+                padding: 12px 16px;
+            }
+            .date-body {
+                padding: 0 12px 14px 12px;
+            }
+            .flight-table {
+                font-size: 13px;
+                min-width: 480px;
+            }
+            .flight-table th,
+            .flight-table td {
+                padding: 8px 10px;
+            }
+            .download-area {
+                justify-content: center;
+            }
+            .download-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .flight-table {
+                font-size: 12px;
+                min-width: 360px;
+            }
+            .flight-table th,
+            .flight-table td {
+                padding: 6px 8px;
+            }
+            .date-header .date-label {
+                font-size: 15px;
+                min-width: 60px;
+            }
+        }
+
+        /* 工具類 */
+        .text-muted {
+            color: #94a3b8;
+        }
+        .fw-600 {
+            font-weight: 600;
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- 標題 -->
+        <header>
+            <h1>✈ 航班資料分析 <small>人員工時檢視</small></h1>
+        </header>
+
+        <!-- 上傳區 -->
+        <div class="upload-section">
+            <span class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 選擇檔案</span>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+            <span class="file-name empty" id="fileName">尚未選擇檔案</span>
+            <span class="upload-status" id="uploadStatus"></span>
+        </div>
+
+        <!-- 狀態訊息 -->
+        <div class="status" id="status"></div>
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>正在分析檔案，請稍候…</p>
+        </div>
+
+        <!-- 人員選擇 -->
+        <div class="person-selector" id="personSelector">
+            <label for="personSelect">👤 選擇人員：</label>
+            <select id="personSelect" onchange="onPersonChange(this.value)">
+                <option value="">— 請選擇 —</option>
+            </select>
+            <span class="person-total-badge" id="personTotalBadge">總航班：<span id="totalFlightCount">0</span></span>
+        </div>
+
+        <!-- 資料展示區 -->
+        <div class="data-area" id="dataArea">
+            <div id="flightGroups"></div>
+        </div>
+
+        <!-- 下載區 -->
+        <div class="download-area" id="downloadArea">
+            <button class="download-btn" id="downloadBtn" onclick="downloadExcel()">
+                ⬇ 下載 Excel 檔案
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================
+        //  全域變數
+        // ============================================================
+        let workbook = null;
+        let allData = []; // 所有航班記錄 { 日期, 機號, 檢查, STA, STD, 來自, 飛往, 人員, 人員類型, ... }
+        let personList = new Set();
+        let personFlightsMap = {}; // { personName: [flight, ...] }
+        let currentPerson = '';
+        let originalFileName = '';
+
+        // 姓氏列表（保留原始完整列表）
+        const CHINESE_SURNAMES = [
+            '趙', '錢', '孫', '李', '周', '吳', '鄭', '王', '馮', '陳', '褚', '衛', '蔣', '沈', '韓', '楊',
+            '朱', '秦', '尤', '許', '何', '呂', '施', '張', '孔', '曹', '嚴', '華', '金', '魏', '陶', '姜',
+            '戚', '謝', '鄒', '喻', '柏', '水', '竇', '章', '雲', '蘇', '潘', '葛', '奚', '范', '彭', '郎',
+            '魯', '韋', '昌', '馬', '苗', '鳳', '花', '方', '俞', '任', '袁', '柳', '酆', '鮑', '史', '唐',
+            '費', '廉', '岑', '薛', '雷', '賀', '倪', '湯', '滕', '殷', '羅', '畢', '郝', '鄔', '安', '常',
+            '樂', '於', '時', '傅', '皮', '卞', '齊', '康', '伍', '余', '元', '卜', '顧', '孟', '平', '黃',
+            '和', '穆', '蕭', '尹', '姚', '邵', '湛', '汪', '祁', '毛', '禹', '狄', '米', '貝', '明', '臧',
+            '計', '伏', '成', '戴', '談', '宋', '茅', '龐', '熊', '紀', '舒', '屈', '項', '祝', '董', '梁',
+            '杜', '阮', '藍', '閔', '席', '季', '麻', '強', '賈', '路', '婁', '危', '江', '童', '顏', '郭',
+            '梅', '盛', '林', '刁', '鍾', '徐', '邱', '駱', '高', '夏', '蔡', '田', '樊', '胡', '凌', '霍',
+            '虞', '萬', '支', '柯', '昝', '管', '盧', '莫', '經', '房', '裘', '繆', '干', '解', '應', '宗',
+            '丁', '宣', '賁', '鄧', '郁', '單', '杭', '洪', '包', '諸', '左', '石', '崔', '吉', '鈕', '龔',
+            '程', '嵇', '邢', '滑', '裴', '陸', '榮', '翁', '荀', '羊', '於', '惠', '甄', '麴', '家', '封',
+            '芮', '羿', '儲', '靳', '汲', '邴', '糜', '松', '井', '段', '富', '巫', '烏', '焦', '巴', '弓',
+            '牧', '隗', '山', '谷', '車', '侯', '宓', '蓬', '全', '郗', '班', '仰', '秋', '仲', '伊', '宮',
+            '甯', '仇', '欒', '暴', '甘', '鈄', '厲', '戎', '祖', '武', '符', '劉', '景', '詹', '束', '龍',
+            '葉', '幸', '司', '韶', '郜', '黎', '薊', '薄', '印', '宿', '白', '懷', '蒲', '邰', '從', '鄂',
+            '索', '咸', '籍', '賴', '卓', '藺', '屠', '蒙', '池', '喬', '陰', '鬱', '胥', '能', '蒼', '雙',
+            '聞', '莘', '黨', '翟', '譚', '貢', '勞', '逄', '姬', '申', '扶', '堵', '冉', '宰', '酈', '雍',
+            '郤', '璩', '桑', '桂', '濮', '牛', '壽', '通', '邊', '扈', '燕', '冀', '郟', '浦', '尚', '農',
+            '溫', '別', '莊', '晏', '柴', '瞿', '閻', '充', '慕', '連', '茹', '習', '宦', '艾', '魚', '容',
+            '向', '古', '易', '慎', '戈', '廖', '庾', '終', '暨', '居', '衡', '步', '都', '耿', '滿', '弘',
+            '匡', '國', '文', '寇', '廣', '祿', '闕', '東', '歐', '殳', '沃', '利', '蔚', '越', '夔', '隆',
+            '師', '鞏', '厙', '聶', '晁', '勾', '敖', '融', '冷', '訾', '辛', '闞', '那', '簡', '饒', '空',
+            '曾', '毋', '沙', '乜', '養', '鞠', '須', '豐', '巢', '關', '蒯', '相', '查', '後', '荊', '紅',
+            '游', '竺', '權', '逯', '蓋', '益', '桓', '公', '萬俟', '司馬', '上官', '歐陽', '夏侯', '諸葛',
+            '聞人', '東方', '赫連', '皇甫', '尉遲', '公羊', '澹台', '公冶', '宗政', '濮陽', '淳于', '單于',
+            '太叔', '申屠', '公孫', '仲孫', '軒轅', '令狐', '鍾離', '宇文', '長孫', '慕容', '鮮于', '閭丘',
+            '司徒', '司空', '亓官', '司寇', '仉', '督', '子車', '顓孫', '端木', '巫馬', '公西', '漆雕', '樂正',
+            '壤駟', '公良', '拓跋', '夾谷', '宰父', '穀梁', '晉', '楚', '閆', '法', '汝', '鄢', '塗', '欽',
+            '段干', '百里', '東郭', '南門', '呼延', '歸', '海', '羊舌', '微生', '岳', '帥', '緱', '亢', '況',
+            '後', '有', '琴', '梁丘', '左丘', '東門', '西門', '商', '牟', '佘', '佴', '伯', '賞', '南宮',
+            '墨', '哈', '譙', '笪', '年', '愛', '陽', '佟', '第五', '言', '福'
+        ];
+
+        const NON_PERSON_WORDS = [
+            '關電', '先接', '早到先', '早到先接', '發證室', '帶除蟲', '送車', '用車', '待命', '備勤',
+            '悉放', '早到', '一人服', '輸入', '台飛', '注意', '早全', '值勤', '聽耳', '推耳', '開加', '開放',
+            '送', '油', '不加', '拖機', '簽', '接機', '簽放人員', '協助人員', '接機人員', '代領班', '領班',
+            '組長', '值勤組長', '代組長', 'QC', '庫房', '外派', '隨機', '公差', '公出', '公假', '調度',
+            '加班', '值班', '請假', '休假', '病假', '事假', 'NIL', 'nil', 'Nil',
+            '早班', '晚班', '大夜班', '小夜班', '值班室', '待命室', '機坪', '機庫',
+            '早', '到', '先', '全', '電', '車', '油', '機', '班', '組', '長', '房', '室',
+            '早先', '先到', '早全接', '早全到', '早全先',
+            '加油', '上車', '拖機', '修機', '補油', '調機', '換班', '整備', '檢修', '測試', '驗收', '檢查',
+            '放行', '開機', '關機', '推機', '拉機', '移機', '搬運', '裝機', '卸機', '拆機', '組裝',
+            '領班', '代班', '替班', '幫忙', '協助', '輔助', '教導', '學習', '練習',
+            '待命', '等候', '等待', '備勤', '值勤', '輪班', '排班', '調度', '休假',
+            '急件', '快速', '慢速', '延誤', '遲到', '早到', '晚到', '夜班', '日班', '午班', '晨班',
+            '大修', '小修', '長班', '短班', '高空', '低空', '多機', '少機', '重機', '輕機',
+            '新機', '舊機', '好機', '壞機', '優良', '良好', '差機', '劣機', '完成', '未完成',
+            '已到', '將到', '正在', '完畢', '結束', '開始',
+            '車輛', '车', '辆', '车子', '车辆调度', '用车', '送车', '接车', '用车送', '用車送',
+            '用車', '用車接', '車輛接', '車輛送', '車輛調度', '車調度', '車子', '車輛使用',
+            '車輛使用', '車輛安排', '車安排', '車輛調配', '車調配'
+        ];
+
+        const SPECIAL_FILTER = ['早到先', '早到', '先接', '早全', '早先', '先到', '早全接', '早全到', '早全先'];
+
+        // ============================================================
+        //  檔案上傳
+        // ============================================================
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            originalFileName = file.name;
+            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            document.getElementById('fileName').className = 'file-name';
+            showStatus('正在分析檔案…', 'info');
+            resetAll();
+            showLoading(true);
+
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const data = new Uint8Array(ev.target.result);
+                    workbook = XLSX.read(data, { type: 'array' });
+                    analyzeWorkbook(workbook);
+                    showLoading(false);
+                } catch (err) {
+                    console.error(err);
+                    showStatus('分析失敗：' + err.message, 'error');
+                    showLoading(false);
+                }
+            };
+            reader.onerror = function() {
+                showStatus('讀取檔案錯誤', 'error');
+                showLoading(false);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // ============================================================
+        //  分析工作簿
+        // ============================================================
+        function analyzeWorkbook(wb) {
+            allData = [];
+            personList.clear();
+            personFlightsMap = {};
+
+            const sheetNames = wb.SheetNames;
+            let processed = 0;
+
+            sheetNames.forEach(name => {
+                // 嘗試所有工作表（原邏輯只處理4位數字，這裡放寬）
+                const ws = wb.Sheets[name];
+                if (!ws) return;
+                const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                if (!json || json.length < 4) return;
+                const date = extractDateFromSheet(name, json);
+                for (let i = 3; i < json.length; i++) {
+                    const row = json[i];
+                    if (!row || !row[0]) continue;
+                    const first = String(row[0]).trim();
+                    if (!first || first.includes('機號')) continue;
+                    processRow(row, date);
+                }
+                processed++;
+            });
+
+            if (allData.length === 0) {
+                showStatus('未找到任何航班資料，請確認檔案格式正確。', 'error');
+                return;
+            }
+
+            // 姓名合併
+            mergeSimilarNames();
+
+            // 建立人員航班映射
+            buildPersonFlightsMap();
+
+            // 更新UI
+            updatePersonSelector();
+            renderData(currentPerson || '');
+            updateDownloadArea();
+
+            showStatus(`✅ 分析完成！共 ${allData.length} 筆航班，${personList.size} 位人員`, 'success');
+            document.getElementById('uploadStatus').textContent = `✅ ${allData.length} 筆`;
+        }
+
+        // ============================================================
+        //  輔助：提取日期
+        // ============================================================
+        function extractDateFromSheet(sheetName, json) {
+            // 若 sheetName 是 4 位數 (MMDD)
+            if (/^[0-9]{4}$/.test(sheetName)) {
+                return sheetName.substring(0, 2) + '/' + sheetName.substring(2, 4);
+            }
+            // 試著從第一列解析
+            try {
+                if (json && json.length > 0 && json[0] && json[0][0]) {
+                    const s = String(json[0][0]);
+                    const m = s.match(/(\d{1,2})[\/\-](\d{1,2})/);
+                    if (m) {
+                        return m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0');
+                    }
+                }
+            } catch (_) {}
+            return sheetName;
+        }
+
+        // ============================================================
+        //  處理單行
+        // ============================================================
+        function processRow(row, date) {
+            const cols = [...row];
+            while (cols.length < 12) cols.push('');
+
+            const flight = {
+                日期: date,
+                機號: String(cols[0] || '').trim(),
+                B_G: String(cols[1] || '').trim(),
+                機型: String(cols[2] || '').trim(),
+                檢查: String(cols[3] || '').trim(),
+                入境: String(cols[4] || '').trim(),
+                出境: String(cols[5] || '').trim(),
+                STA: String(cols[6] || '').trim(),
+                STD: String(cols[7] || '').trim(),
+                來自: String(cols[8] || '').trim(),
+                飛往: String(cols[9] || '').trim(),
+                簽放人員: String(cols[10] || '').trim(),
+                接機人員: String(cols[11] || '').trim()
+            };
+
+            // 授權人員
+            const authStr = flight.簽放人員;
+            if (authStr) {
+                const names = extractPersonnel(authStr);
+                names.forEach(p => {
+                    if (p) {
+                        const rec = { ...flight, 人員: p, 人員類型: '授權' };
+                        allData.push(rec);
+                        personList.add(p);
+                    }
+                });
+            }
+
+            // 非授權人員
+            const nonAuthStr = flight.接機人員;
+            if (nonAuthStr) {
+                const names = extractPersonnel(nonAuthStr);
+                names.forEach(p => {
+                    if (p) {
+                        const rec = { ...flight, 人員: p, 人員類型: '非授權' };
+                        allData.push(rec);
+                        personList.add(p);
+                    }
+                });
+            }
+        }
+
+        // ============================================================
+        //  提取人名 (保留原始邏輯的精簡版)
+        // ============================================================
+        function extractPersonnel(str) {
+            if (!str || typeof str !== 'string') return [];
+            let s = str.toString().trim();
+            if (!s) return [];
+
+            // 特殊過濾
+            for (const w of SPECIAL_FILTER) {
+                if (s === w) return [];
+            }
+            for (const w of NON_PERSON_WORDS) {
+                if (s === w) return [];
+            }
+
+            // 移除數字英文
+            s = s.replace(/[0-9A-Za-z]/g, '');
+            // 移除括號等
+            s = s.replace(/[()\[\]{}【】《》「」]/g, '');
+            // 移除時間
+            s = s.replace(/\d{1,2}:\d{2}/g, '');
+
+            // 智能分割
+            let parts = smartSplit(s);
+            let result = [];
+            for (let p of parts) {
+                p = cleanTrailing(p);
+                if (p && p.length >= 2 && p.length <= 4 && isValidName(p)) {
+                    result.push(p);
+                }
+            }
+            // 去重
+            return [...new Set(result)];
+        }
+
+        function smartSplit(str) {
+            if (!str) return [];
+            str = str.replace(/\s+/g, '');
+            const seps = ['//', '／', '/', '、', '，', ',', '　', '+', '＋'];
+            for (const sep of seps) {
+                if (str.includes(sep)) {
+                    const parts = str.split(sep).map(s => s.trim()).filter(Boolean);
+                    if (parts.length > 1) {
+                        let res = [];
+                        parts.forEach(p => { res = res.concat(smartSplit(p)); });
+                        return res;
+                    }
+                }
+            }
+            // 處理「和」
+            if (str.includes('和')) {
+                const parts = str.split('和').map(s => s.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    let res = [];
+                    parts.forEach(p => { res = res.concat(smartSplit(p)); });
+                    return res;
+                }
+            }
+            // 處理「及」
+            if (str.includes('及')) {
+                const parts = str.split('及').map(s => s.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    let res = [];
+                    parts.forEach(p => { res = res.concat(smartSplit(p)); });
+                    return res;
+                }
+            }
+            return str ? [str] : [];
+        }
+
+        function cleanTrailing(name) {
+            if (!name || name.length < 2) return '';
+            for (const w of NON_PERSON_WORDS) {
+                if (name === w) return '';
+            }
+            if (name.includes('車輛') || name.includes('车') || name.includes('辆')) return '';
+
+            const tails = [
+                '簽', '班', '先接', '早到', '先', '接', '早', '到', '車', '油', '機', '電', '送',
+                '加', '上', '拖', '修', '補', '調', '換', '整', '檢', '測', '試', '驗', '查',
+                '放', '開', '關', '推', '拉', '移', '搬', '運', '裝', '卸', '拆', '組',
+                '領', '代', '替', '幫', '協', '助', '輔', '導', '教', '學', '練',
+                '待', '候', '等', '備', '勤', '值', '輪', '排', '調', '休', '假',
+                '急', '快', '慢', '延', '遲', '早', '晚', '夜', '日', '午', '晨',
+                '大', '小', '長', '短', '高', '低', '多', '少', '重', '輕',
+                '新', '舊', '好', '壞', '優', '良', '差', '劣', '完', '未',
+                '已', '將', '在', '完', '畢', '結', '束', '開', '始',
+                '不', '帶', '耳', '輛', '辆'
+            ];
+            let cleaned = name;
+            let changed = true;
+            while (changed && cleaned.length >= 2) {
+                changed = false;
+                for (const t of tails) {
+                    if (cleaned.endsWith(t)) {
+                        cleaned = cleaned.slice(0, -t.length);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+            return cleaned.length >= 2 ? cleaned : '';
+        }
+
+        function isValidName(name) {
+            if (!name || name.length < 2 || name.length > 4) return false;
+            if (!/^[\u4e00-\u9fa5]+$/.test(name)) return false;
+            for (const w of NON_PERSON_WORDS) {
+                if (name === w) return false;
+            }
+            // 檢查姓氏
+            const firstTwo = name.substring(0, 2);
+            if (CHINESE_SURNAMES.includes(firstTwo)) return true;
+            const first = name.charAt(0);
+            if (CHINESE_SURNAMES.includes(first)) return true;
+            return false;
+        }
+
+        // ============================================================
+        //  姓名合併 (簡化)
+        // ============================================================
+        function mergeSimilarNames() {
+            const variants = {};
+            const names = Array.from(personList);
+            for (let i = 0; i < names.length; i++) {
+                for (let j = i + 1; j < names.length; j++) {
+                    const a = names[i],
+                        b = names[j];
+                    if (a.length < b.length && b.startsWith(a)) {
+                        if (!variants[a]) variants[a] = new Set();
+                        variants[a].add(b);
+                    } else if (b.length < a.length && a.startsWith(b)) {
+                        if (!variants[b]) variants[b] = new Set();
+                        variants[b].add(a);
+                    }
+                }
+            }
+            // 合併
+            Object.keys(variants).forEach(short => {
+                const longs = Array.from(variants[short]);
+                longs.forEach(long => {
+                    // 將 allData 中的 short 改為 long
+                    allData.forEach(rec => {
+                        if (rec.人員 === short) rec.人員 = long;
+                    });
+                    personList.delete(short);
+                    personList.add(long);
+                });
+            });
+
+            // 特別處理余謙 / 余謙和
+            if (personList.has('余謙') && personList.has('余謙和')) {
+                allData.forEach(rec => {
+                    if (rec.人員 === '余謙') rec.人員 = '余謙和';
+                });
+                personList.delete('余謙');
+                personList.add('余謙和');
+            }
+        }
+
+        // ============================================================
+        //  建立人員航班映射
+        // ============================================================
+        function buildPersonFlightsMap() {
+            personFlightsMap = {};
+            personList.forEach(p => { personFlightsMap[p] = []; });
+            allData.forEach(rec => {
+                const p = rec.人員;
+                if (p && personFlightsMap[p]) {
+                    personFlightsMap[p].push(rec);
+                }
+            });
+            // 按日期排序
+            Object.keys(personFlightsMap).forEach(p => {
+                personFlightsMap[p].sort((a, b) => {
+                    const da = a.日期.split('/').map(Number);
+                    const db = b.日期.split('/').map(Number);
+                    return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
+                });
+            });
+        }
+
+        // ============================================================
+        //  計算實際工時
+        // ============================================================
+        function calcHours(check) {
+            const c = (check || '').trim().toUpperCase();
+            if (c === 'TS') return 1.5;
+            if (c === 'PF') return 2.0;
+            return null; // 無資料
+        }
+
+        // ============================================================
+        //  UI：人員下拉
+        // ============================================================
+        function updatePersonSelector() {
+            const sel = document.getElementById('personSelect');
+            sel.innerHTML = '<option value="">— 請選擇 —</option>';
+            const sorted = Array.from(personList).sort((a, b) => a.localeCompare(b));
+            sorted.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+            const container = document.getElementById('personSelector');
+            if (sorted.length > 0) {
+                container.classList.add('show');
+            } else {
+                container.classList.remove('show');
+            }
+            // 自動選第一個
+            if (sorted.length > 0) {
+                sel.value = sorted[0];
+                currentPerson = sorted[0];
+                onPersonChange(sorted[0]);
+            }
+        }
+
+        // ============================================================
+        //  人員切換
+        // ============================================================
+        function onPersonChange(person) {
+            currentPerson = person;
+            if (!person) {
+                document.getElementById('dataArea').classList.remove('show');
+                document.getElementById('downloadArea').classList.remove('show');
+                return;
+            }
+            renderData(person);
+            updateDownloadArea();
+            document.getElementById('dataArea').classList.add('show');
+        }
+
+        // ============================================================
+        //  渲染資料
+        // ============================================================
+        function renderData(person) {
+            const container = document.getElementById('flightGroups');
+            const badge = document.getElementById('totalFlightCount');
+            const flights = personFlightsMap[person] || [];
+            badge.textContent = flights.length;
+
+            if (flights.length === 0) {
+                container.innerHTML = `<div class="no-flight-msg">該人員尚無航班資料</div>`;
+                return;
+            }
+
+            // 按日期分組
+            const groups = {};
+            flights.forEach(f => {
+                const d = f.日期 || '未知';
+                if (!groups[d]) groups[d] = [];
+                groups[d].push(f);
+            });
+
+            // 日期排序
+            const sortedDates = Object.keys(groups).sort((a, b) => {
+                const da = a.split('/').map(Number);
+                const db = b.split('/').map(Number);
+                return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
+            });
+
+            let html = '';
+            sortedDates.forEach(date => {
+                const items = groups[date];
+                const count = items.length;
+                html += `
+                    <div class="date-group">
+                        <div class="date-header" onclick="toggleGroup(this)">
+                            <span class="date-label">📅 ${date}</span>
+                            <span class="flight-count-badge">${count} 筆</span>
+                            <span class="expand-icon">▾</span>
+                        </div>
+                        <div class="date-body open">
+                            <div class="flight-table-wrap">
+                                <table class="flight-table">
+                                    <thead>
+                                        <tr>
+                                            <th>時間</th>
+                                            <th>機號</th>
+                                            <th>地點</th>
+                                            <th class="col-hours">實際工時</th>
+                                            <th>任務條碼</th>
+                                            <th>任務描述</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+                items.forEach(f => {
+                    const time = buildTime(f.STA, f.STD);
+                    const place = buildPlace(f.來自, f.飛往);
+                    const hours = calcHours(f.檢查);
+                    const hoursDisplay = hours !== null ? hours.toFixed(1) : '—';
+                    const taskDesc = f.檢查 || '—';
+                    html += `
+                        <tr>
+                            <td class="col-time">${time}</td>
+                            <td class="col-ac">${f.機號 || '—'}</td>
+                            <td class="col-place">${place}</td>
+                            <td class="col-hours">${hoursDisplay}</td>
+                            <td class="col-barcode">—</td>
+                            <td class="col-task">${taskDesc}</td>
+                        </tr>
+                    `;
+                });
+                html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // 默認展開第一個
+            const firstBody = container.querySelector('.date-body');
+            if (firstBody) {
+                firstBody.classList.add('open');
+                const icon = firstBody.parentElement.querySelector('.expand-icon');
+                if (icon) icon.classList.add('open');
+            }
+        }
+
+        // ============================================================
+        //  輔助：時間 / 地點
+        // ============================================================
+        function buildTime(sta, std) {
+            const s = (sta || '').trim();
+            const t = (std || '').trim();
+            if (s && t) return s + ' → ' + t;
+            if (s) return s;
+            if (t) return t;
+            return '—';
+        }
+
+        function buildPlace(from, to) {
+            const f = (from || '').trim();
+            const t = (to || '').trim();
+            if (f && t) return f + ' → ' + t;
+            if (f) return f;
+            if (t) return t;
+            return '—';
+        }
+
+        // ============================================================
+        //  折疊/展開
+        // ============================================================
+        function toggleGroup(header) {
+            const body = header.nextElementSibling;
+            if (!body) return;
+            const isOpen = body.classList.contains('open');
+            if (isOpen) {
+                body.classList.remove('open');
+                header.querySelector('.expand-icon').classList.remove('open');
+            } else {
+                body.classList.add('open');
+                header.querySelector('.expand-icon').classList.add('open');
+            }
+        }
+
+        // ============================================================
+        //  下載區
+        // ============================================================
+        function updateDownloadArea() {
+            const area = document.getElementById('downloadArea');
+            const flights = personFlightsMap[currentPerson] || [];
+            if (flights.length > 0 && currentPerson) {
+                area.classList.add('show');
+            } else {
+                area.classList.remove('show');
+            }
+        }
+
+        // ============================================================
+        //  下載 Excel (.xlsx)
+        // ============================================================
+        function downloadExcel() {
+            const person = currentPerson;
+            if (!person) {
+                showStatus('請先選擇人員', 'error');
+                return;
+            }
+            const flights = personFlightsMap[person] || [];
+            if (flights.length === 0) {
+                showStatus('該人員無航班資料可下載', 'error');
+                return;
+            }
+
+            // 準備資料
+            const rows = flights.map(f => {
+                const time = buildTime(f.STA, f.STD);
+                const place = buildPlace(f.來自, f.飛往);
+                const hours = calcHours(f.檢查);
+                const hoursDisplay = hours !== null ? hours : '';
+                return {
+                    '日期': f.日期 || '',
+                    '時間': time,
+                    '機號': f.機號 || '',
+                    '地點': place,
+                    '實際工時': hoursDisplay,
+                    '任務條碼': '',
+                    '任務描述': f.檢查 || ''
+                };
+            });
+
+            // 排序
+            rows.sort((a, b) => {
+                const da = a['日期'].split('/').map(Number);
+                const db = b['日期'].split('/').map(Number);
+                return (da[0] * 100 + da[1]) - (db[0] * 100 + db[1]);
+            });
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '航班資料');
+
+            // 產生檔名
+            const fileName = generateFileName(originalFileName, flights);
+            XLSX.writeFile(wb, fileName);
+            showStatus(`✅ 已下載 ${fileName}`, 'success');
+        }
+
+        // ============================================================
+        //  產生檔名：年份月份經歷.xlsx
+        // ============================================================
+        function generateFileName(originalName, flights) {
+            // 從原始檔名提取月份關鍵字
+            let monthStr = '';
+            let yearStr = '';
+
+            // 先從 flights 中提取月份
+            if (flights.length > 0) {
+                const dateParts = flights[0].日期.split('/');
+                if (dateParts.length === 2) {
+                    const m = parseInt(dateParts[0], 10);
+                    if (m >= 1 && m <= 12) {
+                        monthStr = m + '月';
+                    }
+                }
+            }
+
+            // 從原始檔名提取月份英文
+            if (!monthStr) {
+                const monthMap = {
+                    'JAN': 1,
+                    'FEB': 2,
+                    'MAR': 3,
+                    'APR': 4,
+                    'MAY': 5,
+                    'JUN': 6,
+                    'JUL': 7,
+                    'AUG': 8,
+                    'SEP': 9,
+                    'OCT': 10,
+                    'NOV': 11,
+                    'DEC': 12
+                };
+                const upper = originalName.toUpperCase();
+                for (const [key, val] of Object.entries(monthMap)) {
+                    if (upper.includes(key)) {
+                        monthStr = val + '月';
+                        break;
+                    }
+                }
+                // 嘗試中文月份
+                const chMonths = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+                for (let i = 0; i < chMonths.length; i++) {
+                    if (originalName.includes(chMonths[i])) {
+                        monthStr = (i + 1) + '月';
+                        break;
+                    }
+                }
+            }
+
+            // 從原始檔名提取年份
+            const yearMatch = originalName.match(/\b(20\d{2})\b/);
+            if (yearMatch) {
+                yearStr = yearMatch[1] + '年';
+            } else {
+                // 從日期推測年份（若月份為當前月份，則用今年）
+                const now = new Date();
+                if (monthStr) {
+                    const m = parseInt(monthStr, 10);
+                    if (m >= 1 && m <= 12) {
+                        // 如果當前月份 >= 該月份，用今年，否則用去年
+                        if (now.getMonth() + 1 >= m) {
+                            yearStr = now.getFullYear() + '年';
+                        } else {
+                            yearStr = (now.getFullYear() - 1) + '年';
+                        }
+                    }
+                }
+                if (!yearStr) {
+                    yearStr = now.getFullYear() + '年';
+                }
+            }
+
+            if (!monthStr) {
+                // 若還是沒有，從日期取
+                const now = new Date();
+                monthStr = (now.getMonth() + 1) + '月';
+            }
+
+            return (yearStr + monthStr + '經歷.xlsx').replace(/\s/g, '');
+        }
+
+        // ============================================================
+        //  工具函數
+        // ============================================================
+        function resetAll() {
+            allData = [];
+            personList.clear();
+            personFlightsMap = {};
+            currentPerson = '';
+            document.getElementById('personSelector').classList.remove('show');
+            document.getElementById('dataArea').classList.remove('show');
+            document.getElementById('downloadArea').classList.remove('show');
+            document.getElementById('flightGroups').innerHTML = '';
+            document.getElementById('totalFlightCount').textContent = '0';
+            document.getElementById('uploadStatus').textContent = '';
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.className = 'status ' + type;
+            el.textContent = msg;
+            el.style.display = 'block';
+            // 自動消失
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => {
+                if (el.className.includes('success') || el.className.includes('info')) {
+                    el.style.display = 'none';
+                }
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            const el = document.getElementById('loading');
+            if (show) {
+                el.classList.add('show');
+            } else {
+                el.classList.remove('show');
+            }
+        }
+
+        // ============================================================
+        //  初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 可放初始化程式
+        });
+    </script>
+</body>
+</html>
