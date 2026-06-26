@@ -84,6 +84,20 @@
             font-size: 13px;
             color: #64748b;
         }
+        .year-input-section .apply-btn {
+            background: #1e6f9f;
+            color: #fff;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .year-input-section .apply-btn:hover {
+            background: #15557a;
+        }
         .upload-section {
             background: #f8fafc;
             border: 2px dashed #cbd5e1;
@@ -501,6 +515,7 @@
             margin-bottom: 12px;
             border: 1px solid #e9edf2;
             transition: background 0.15s;
+            cursor: pointer;
         }
         .summary-card:hover {
             background: #f1f6fd;
@@ -517,6 +532,11 @@
             font-size: 16px;
             color: #0b3b5c;
             min-width: 70px;
+            cursor: pointer;
+            text-decoration: underline dotted;
+        }
+        .summary-card .card-date:hover {
+            color: #1e6f9f;
         }
         .summary-card .card-count {
             background: #e2e8f0;
@@ -569,6 +589,105 @@
             gap: 12px;
             background: #fafcff;
             flex-wrap: wrap;
+        }
+        /* 日期選擇器彈窗 */
+        .date-selector-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.50);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+        .date-selector-overlay.show {
+            display: flex;
+        }
+        .date-selector-panel {
+            background: #ffffff;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+        .date-selector-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 2px solid #e9edf2;
+            background: #fafcff;
+        }
+        .date-selector-header h3 {
+            font-size: 18px;
+            color: #0b3b5c;
+        }
+        .date-selector-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #94a3b8;
+            padding: 0 6px;
+            transition: color 0.2s;
+        }
+        .date-selector-header .close-btn:hover {
+            color: #1e293b;
+        }
+        .date-selector-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 24px;
+        }
+        .date-selector-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid #edf2f7;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .date-selector-item:hover {
+            background: #f8faff;
+        }
+        .date-selector-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #1e6f9f;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .date-selector-item .item-info {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 18px;
+            font-size: 14px;
+        }
+        .date-selector-item .item-info .time {
+            font-weight: 500;
+            color: #1e293b;
+        }
+        .date-selector-item .item-info .detail {
+            color: #475569;
+        }
+        .date-selector-footer {
+            padding: 14px 24px;
+            border-top: 2px solid #e9edf2;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #fafcff;
         }
         @media (max-width: 720px) {
             .container {
@@ -653,6 +772,20 @@
                 padding: 6px 16px;
                 font-size: 13px;
             }
+            .date-selector-panel {
+                max-width: 100%;
+                max-height: 90vh;
+            }
+            .date-selector-header {
+                padding: 14px 16px;
+            }
+            .date-selector-body {
+                padding: 12px 14px;
+            }
+            .date-selector-footer {
+                padding: 12px 14px;
+                justify-content: center;
+            }
         }
         @media (max-width: 480px) {
             .flight-table {
@@ -693,7 +826,8 @@
         <div class="year-input-section">
             <label for="yearInput">📅 年份：</label>
             <input type="number" id="yearInput" value="2026" min="2000" max="2100">
-            <span class="hint">請輸入西元年份，所有日期將以此為準</span>
+            <button class="apply-btn" onclick="applyYearToAll()">套用年份</button>
+            <span class="hint">輸入西元年份，點擊「套用年份」更新所有日期</span>
         </div>
 
         <div class="upload-section">
@@ -749,6 +883,23 @@
         </div>
     </div>
 
+    <!-- 日期選擇器彈窗 -->
+    <div class="date-selector-overlay" id="dateSelectorOverlay">
+        <div class="date-selector-panel">
+            <div class="date-selector-header">
+                <h3 id="dateSelectorTitle">選擇航班</h3>
+                <button class="close-btn" onclick="closeDateSelector()">✕</button>
+            </div>
+            <div class="date-selector-body" id="dateSelectorBody">
+                <!-- 動態渲染 -->
+            </div>
+            <div class="date-selector-footer">
+                <button class="btn btn-outline" onclick="closeDateSelector()">取消</button>
+                <button class="btn btn-primary" onclick="confirmDateSelection()">確認選擇</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ================================================================
         //  全域
@@ -759,6 +910,14 @@
         let currentPerson = '';
         let originalFileNames = [];
         let selectedIds = new Set();
+
+        // 暫存日期選擇器狀態
+        let dateSelectorData = {
+            date: null, // 當前選擇的日期
+            flights: [], // 該日所有航班
+            selectedId: null, // 當前選中的航班ID
+            callback: null // 確認後的回調
+        };
 
         // 姓氏列表（保留完整）
         const CHINESE_SURNAMES = [
@@ -831,6 +990,36 @@
                 el.value = year;
             }
             return year;
+        }
+
+        // ================================================================
+        //  套用年份到所有數據
+        // ================================================================
+        function applyYearToAll() {
+            if (allData.length === 0) {
+                showStatus('請先上傳檔案', 'info');
+                return;
+            }
+            const newYear = getInputYear();
+            // 更新所有數據的日期年份
+            allData.forEach(rec => {
+                const parts = rec.日期.split('-');
+                if (parts.length === 3) {
+                    rec.日期 = `${newYear}-${parts[1]}-${parts[2]}`;
+                }
+            });
+            // 重新構建映射
+            buildPersonFlightsMap();
+            // 重新渲染
+            if (currentPerson) {
+                renderData(currentPerson);
+                // 更新已選面板（如果開啟）
+                if (document.getElementById('selectedOverlay').classList.contains('show')) {
+                    const selectedFlights = allData.filter(f => selectedIds.has(f.id));
+                    renderSelectedPanel(selectedFlights);
+                }
+            }
+            showStatus(`年份已更新為 ${newYear}`, 'success');
         }
 
         // ================================================================
@@ -1548,12 +1737,12 @@
                 const taskStr = Array.from(taskSet).join('、');
 
                 html += `
-                    <div class="summary-card" data-date="${date}">
+                    <div class="summary-card" data-date="${date}" onclick="openDateSelector('${date}')">
                         <div class="card-header">
-                            <span class="card-date">📅 ${displayDate}</span>
+                            <span class="card-date" title="點擊重新選擇該日航班">📅 ${displayDate}</span>
                             <span class="card-count">${count} 筆</span>
                             <span class="card-hours">🕒 ${totalHours.toFixed(1)} 小時</span>
-                            <button class="remove-btn-sm" onclick="removeDateFromSelected('${date}')" title="移除該日所有航班">✕</button>
+                            <button class="remove-btn-sm" onclick="event.stopPropagation(); removeDateFromSelected('${date}')" title="移除該日所有航班">✕</button>
                         </div>
                         <div class="card-details">
                             <span><span class="label">機號：</span>${acStr}</span>
@@ -1587,11 +1776,118 @@
             }
         }
 
-        document.getElementById('selectedOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closeSelectedPanel();
-        });
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeSelectedPanel();
+        // ================================================================
+        //  日期選擇器
+        // ================================================================
+        function openDateSelector(date) {
+            // 找出該日期所有航班（屬於當前人員）
+            const flights = personFlightsMap[currentPerson] || [];
+            const dayFlights = flights.filter(f => f.日期 === date);
+            if (dayFlights.length === 0) {
+                showStatus('該日期無航班資料', 'info');
+                return;
+            }
+
+            // 找出目前選中的 ID（可能為 null）
+            const currentSelected = Array.from(selectedIds).find(id => {
+                const f = allData.find(d => d.id === id);
+                return f && f.日期 === date;
+            });
+
+            dateSelectorData.date = date;
+            dateSelectorData.flights = dayFlights;
+            dateSelectorData.selectedId = currentSelected || null;
+            dateSelectorData.callback = function(selectedId) {
+                // 先移除該日所有已選
+                const toRemove = [];
+                selectedIds.forEach(id => {
+                    const f = allData.find(d => d.id === id);
+                    if (f && f.日期 === date) toRemove.push(id);
+                });
+                toRemove.forEach(id => selectedIds.delete(id));
+                // 加入新選的
+                if (selectedId !== null) {
+                    selectedIds.add(selectedId);
+                }
+                syncCheckboxes();
+                updateBottomToolbar();
+                // 關閉彈窗後重新整理已選面板
+                const remaining = allData.filter(f => selectedIds.has(f.id));
+                if (remaining.length === 0) {
+                    closeSelectedPanel();
+                    showStatus('已清空所有選擇', 'info');
+                } else {
+                    renderSelectedPanel(remaining);
+                }
+            };
+
+            // 渲染選擇器
+            renderDateSelector(dayFlights, currentSelected);
+            document.getElementById('dateSelectorOverlay').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function renderDateSelector(flights, currentSelected) {
+            const body = document.getElementById('dateSelectorBody');
+            const title = document.getElementById('dateSelectorTitle');
+            const displayDate = formatDateDisplay(flights[0].日期);
+            title.textContent = `📅 ${displayDate} - 選擇航班`;
+
+            let html = '';
+            flights.forEach(f => {
+                const checked = (f.id === currentSelected) ? 'checked' : '';
+                const time = buildTime(f.STA, f.STD);
+                const place = buildPlace(f.來自, f.飛往);
+                const task = f.檢查 || '—';
+                const hours = calcHours(f.檢查);
+                const hoursStr = hours !== null ? ` (${hours.toFixed(1)}h)` : '';
+                html += `
+                    <div class="date-selector-item" onclick="selectDateItem(${f.id})">
+                        <input type="radio" name="dateFlight" value="${f.id}" ${checked} 
+                               onchange="selectDateItem(${f.id})">
+                        <div class="item-info">
+                            <span class="time">${time}</span>
+                            <span class="detail">機號 ${f.機號 || '—'}</span>
+                            <span class="detail">${place}</span>
+                            <span class="detail">${task}${hoursStr}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            body.innerHTML = html;
+        }
+
+        function selectDateItem(id) {
+            // 更新選中狀態
+            dateSelectorData.selectedId = id;
+            // 更新 radio
+            document.querySelectorAll('#dateSelectorBody input[name="dateFlight"]').forEach(el => {
+                el.checked = (parseInt(el.value) === id);
+            });
+        }
+
+        function confirmDateSelection() {
+            if (dateSelectorData.callback) {
+                dateSelectorData.callback(dateSelectorData.selectedId);
+            }
+            closeDateSelector();
+        }
+
+        function closeDateSelector() {
+            document.getElementById('dateSelectorOverlay').classList.remove('show');
+            document.body.style.overflow = '';
+            dateSelectorData = {
+                date: null,
+                flights: [],
+                selectedId: null,
+                callback: null
+            };
+        }
+
+        // 點擊遮罩關閉
+        document.getElementById('dateSelectorOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeDateSelector();
         });
 
         // ================================================================
@@ -1682,7 +1978,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // 預設年份為今年
             const now = new Date();
             document.getElementById('yearInput').value = now.getFullYear();
         });
