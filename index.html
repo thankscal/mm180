@@ -871,14 +871,12 @@
 
         // 提取日期，返回 "YYYY-MM-DD"
         function extractDateFromSheet(sheetName, json, year) {
-            // 嘗試從 sheetName 提取 MMDD
             let month = null,
                 day = null;
             if (/^[0-9]{4}$/.test(sheetName)) {
                 month = parseInt(sheetName.substring(0, 2));
                 day = parseInt(sheetName.substring(2, 4));
             } else {
-                // 嘗試從第一列提取
                 try {
                     if (json && json.length > 0 && json[0] && json[0][0]) {
                         const s = String(json[0][0]);
@@ -895,7 +893,6 @@
                 const dd = String(day).padStart(2, '0');
                 return `${year}-${mm}-${dd}`;
             }
-            // 若無法解析，回傳一個預設值（但不應該發生）
             return `${year}-01-01`;
         }
 
@@ -1136,17 +1133,13 @@
         }
 
         // ================================================================
-        //  日期顯示格式化
+        //  日期顯示格式化 (YYYY/MM/DD)
         // ================================================================
         function formatDateDisplay(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
             if (parts.length !== 3) return dateStr;
-            const year = parts[0];
-            const month = parseInt(parts[1]) - 1;
-            const day = parseInt(parts[2]);
-            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            return `${day} ${months[month]} ${year}`;
+            return `${parts[0]}/${parts[1]}/${parts[2]}`;
         }
 
         // ================================================================
@@ -1569,7 +1562,7 @@
             const rows = grouped.map(item => {
                 const date = item.date;
                 const flights = item.flights;
-                const displayDate = formatDateDisplay(date);
+                const displayDate = formatDateDisplay(date); // YYYY/MM/DD
 
                 const acSet = new Set();
                 const taskSet = new Set();
