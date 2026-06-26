@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
     </script>
     <style>
-        /* 所有樣式保持不變，與之前相同，為節省篇幅省略，但實際會完整輸出 */
+        /* 所有樣式保持不變（與上一版相同，此處省略以節省篇幅，但實際會完整輸出） */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -913,10 +913,10 @@
 
         // 暫存日期選擇器狀態
         let dateSelectorData = {
-            date: null, // 當前選擇的日期
-            flights: [], // 該日所有航班
-            selectedId: null, // 當前選中的航班ID
-            callback: null // 確認後的回調
+            date: null,
+            flights: [],
+            selectedId: null,
+            callback: null
         };
 
         // 姓氏列表（保留完整）
@@ -1001,19 +1001,15 @@
                 return;
             }
             const newYear = getInputYear();
-            // 更新所有數據的日期年份
             allData.forEach(rec => {
                 const parts = rec.日期.split('-');
                 if (parts.length === 3) {
                     rec.日期 = `${newYear}-${parts[1]}-${parts[2]}`;
                 }
             });
-            // 重新構建映射
             buildPersonFlightsMap();
-            // 重新渲染
             if (currentPerson) {
                 renderData(currentPerson);
-                // 更新已選面板（如果開啟）
                 if (document.getElementById('selectedOverlay').classList.contains('show')) {
                     const selectedFlights = allData.filter(f => selectedIds.has(f.id));
                     renderSelectedPanel(selectedFlights);
@@ -1109,7 +1105,6 @@
             showStatus(`✅ 分析完成！共 ${allData.length} 筆航班，${personList.size} 位人員`, 'success');
         }
 
-        // 提取日期，使用輸入的年份，返回 "YYYY-MM-DD"
         function extractDateFromSheet(sheetName, json, year) {
             let month = null,
                 day = null;
@@ -1136,7 +1131,6 @@
             return `${year}-01-01`;
         }
 
-        // 處理單行
         function processRow(row, date, id) {
             const cols = [...row];
             while (cols.length < 12) cols.push('');
@@ -1183,7 +1177,6 @@
             }
         }
 
-        // 提取人名（與之前相同）
         function extractPersonnel(str) {
             if (!str || typeof str !== 'string') return [];
             let s = str.toString().trim();
@@ -1780,7 +1773,6 @@
         //  日期選擇器
         // ================================================================
         function openDateSelector(date) {
-            // 找出該日期所有航班（屬於當前人員）
             const flights = personFlightsMap[currentPerson] || [];
             const dayFlights = flights.filter(f => f.日期 === date);
             if (dayFlights.length === 0) {
@@ -1788,7 +1780,6 @@
                 return;
             }
 
-            // 找出目前選中的 ID（可能為 null）
             const currentSelected = Array.from(selectedIds).find(id => {
                 const f = allData.find(d => d.id === id);
                 return f && f.日期 === date;
@@ -1798,20 +1789,17 @@
             dateSelectorData.flights = dayFlights;
             dateSelectorData.selectedId = currentSelected || null;
             dateSelectorData.callback = function(selectedId) {
-                // 先移除該日所有已選
                 const toRemove = [];
                 selectedIds.forEach(id => {
                     const f = allData.find(d => d.id === id);
                     if (f && f.日期 === date) toRemove.push(id);
                 });
                 toRemove.forEach(id => selectedIds.delete(id));
-                // 加入新選的
                 if (selectedId !== null) {
                     selectedIds.add(selectedId);
                 }
                 syncCheckboxes();
                 updateBottomToolbar();
-                // 關閉彈窗後重新整理已選面板
                 const remaining = allData.filter(f => selectedIds.has(f.id));
                 if (remaining.length === 0) {
                     closeSelectedPanel();
@@ -1821,7 +1809,6 @@
                 }
             };
 
-            // 渲染選擇器
             renderDateSelector(dayFlights, currentSelected);
             document.getElementById('dateSelectorOverlay').classList.add('show');
             document.body.style.overflow = 'hidden';
@@ -1859,9 +1846,7 @@
         }
 
         function selectDateItem(id) {
-            // 更新選中狀態
             dateSelectorData.selectedId = id;
-            // 更新 radio
             document.querySelectorAll('#dateSelectorBody input[name="dateFlight"]').forEach(el => {
                 el.checked = (parseInt(el.value) === id);
             });
@@ -1885,13 +1870,12 @@
             };
         }
 
-        // 點擊遮罩關閉
         document.getElementById('dateSelectorOverlay').addEventListener('click', function(e) {
             if (e.target === this) closeDateSelector();
         });
 
         // ================================================================
-        //  下載 Excel（每日匯總）- 不含地點，檔名為「人名工作經歷」
+        //  下載 Excel（檔名：人名+年份+工作經歷.xlsx）
         // ================================================================
         function downloadSelected() {
             if (!currentPerson) {
@@ -1935,7 +1919,9 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '工作經歷');
 
-            const fileName = `${currentPerson}工作經歷.xlsx`;
+            // 取得年份（從輸入框）
+            const year = getInputYear();
+            const fileName = `${currentPerson}${year}工作經歷.xlsx`;
             XLSX.writeFile(wb, fileName);
             showStatus(`✅ 已下載 ${fileName} (${rows.length} 日)`, 'success');
             closeSelectedPanel();
