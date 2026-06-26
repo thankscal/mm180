@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
     </script>
     <style>
-        /* 樣式保持不變，與之前相同，為節省篇幅此處省略，但實際會完整輸出 */
+        /* 樣式與之前完全相同，為節省篇幅此處省略，但實際會完整輸出 */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -651,8 +651,8 @@
         </header>
 
         <div class="upload-section">
-            <span class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 選擇檔案</span>
-            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+            <span class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 選擇檔案（可多選）</span>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none;">
             <span class="file-name empty" id="fileName">尚未選擇檔案</span>
             <span class="upload-status" id="uploadStatus"></span>
         </div>
@@ -711,7 +711,7 @@
         let personList = new Set();
         let personFlightsMap = {};
         let currentPerson = '';
-        let originalFileName = '';
+        let originalFileNames = [];
         let selectedIds = new Set();
 
         // 姓氏列表（保留完整）
@@ -775,61 +775,74 @@
         const SPECIAL_FILTER = ['早到先', '早到', '先接', '早全', '早先', '先到', '早全接', '早全到', '早全先'];
 
         // ================================================================
-        //  檔案上傳
+        //  檔案上傳 (支援多個檔案)
         // ================================================================
         document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            originalFileName = file.name;
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            // 收集檔案名稱
+            originalFileNames = Array.from(files).map(f => f.name);
+            document.getElementById('fileName').textContent = `📄 已選 ${files.length} 個檔案`;
             document.getElementById('fileName').className = 'file-name';
-            showStatus('正在分析檔案…', 'info');
+            showStatus(`正在分析 ${files.length} 個檔案…`, 'info');
             resetAll();
             showLoading(true);
 
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const data = new Uint8Array(ev.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    analyzeWorkbook(workbook);
+            // 讀取所有檔案
+            const readers = [];
+            for (let i = 0; i < files.length; i++) {
+                readers.push(readFileAsArrayBuffer(files[i]));
+            }
+
+            Promise.all(readers)
+                .then(buffers => {
+                    const workbooks = buffers.map(data => {
+                        return XLSX.read(data, { type: 'array' });
+                    });
+                    processWorkbooks(workbooks);
                     showLoading(false);
-                } catch (err) {
+                })
+                .catch(err => {
                     console.error(err);
-                    showStatus('分析失敗：' + err.message, 'error');
+                    showStatus('讀取檔案失敗：' + err.message, 'error');
                     showLoading(false);
-                }
-            };
-            reader.onerror = function() {
-                showStatus('讀取檔案錯誤', 'error');
-                showLoading(false);
-            };
-            reader.readAsArrayBuffer(file);
+                });
         });
 
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e.target.error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
         // ================================================================
-        //  分析工作簿
+        //  處理多個工作簿
         // ================================================================
-        function analyzeWorkbook(wb) {
+        function processWorkbooks(workbooks) {
             allData = [];
             personList.clear();
-            personFlightsMap = {};
             let idCounter = 0;
 
-            const sheetNames = wb.SheetNames;
-            sheetNames.forEach(name => {
-                const ws = wb.Sheets[name];
-                if (!ws) return;
-                const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                if (!json || json.length < 4) return;
-                const date = extractDateFromSheet(name, json);
-                for (let i = 3; i < json.length; i++) {
-                    const row = json[i];
-                    if (!row || !row[0]) continue;
-                    const first = String(row[0]).trim();
-                    if (!first || first.includes('機號')) continue;
-                    processRow(row, date, idCounter++);
-                }
+            workbooks.forEach(wb => {
+                const sheetNames = wb.SheetNames;
+                sheetNames.forEach(name => {
+                    const ws = wb.Sheets[name];
+                    if (!ws) return;
+                    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    if (!json || json.length < 4) return;
+                    const date = extractDateFromSheet(name, json);
+                    for (let i = 3; i < json.length; i++) {
+                        const row = json[i];
+                        if (!row || !row[0]) continue;
+                        const first = String(row[0]).trim();
+                        if (!first || first.includes('機號')) continue;
+                        processRow(row, date, idCounter++);
+                    }
+                });
             });
 
             if (allData.length === 0) {
@@ -843,10 +856,11 @@
             updatePersonSelector();
             renderData(currentPerson || '');
             updateBottomToolbar();
-            document.getElementById('uploadStatus').textContent = `✅ ${allData.length} 筆`;
+            document.getElementById('uploadStatus').textContent = `✅ ${allData.length} 筆 (${workbooks.length} 個檔案)`;
             showStatus(`✅ 分析完成！共 ${allData.length} 筆航班，${personList.size} 位人員`, 'success');
         }
 
+        // 提取日期（與之前相同）
         function extractDateFromSheet(sheetName, json) {
             if (/^[0-9]{4}$/.test(sheetName)) {
                 return sheetName.substring(0, 2) + '/' + sheetName.substring(2, 4);
@@ -863,6 +877,7 @@
             return sheetName;
         }
 
+        // 處理單行（與之前相同）
         function processRow(row, date, id) {
             const cols = [...row];
             while (cols.length < 12) cols.push('');
@@ -909,6 +924,7 @@
             }
         }
 
+        // 提取人名（與之前相同）
         function extractPersonnel(str) {
             if (!str || typeof str !== 'string') return [];
             let s = str.toString().trim();
@@ -1305,7 +1321,7 @@
         }
 
         // ================================================================
-        //  自動選擇 - 一天一條
+        //  自動選擇 - 一天一條（修正版）
         // ================================================================
         function autoSelectChinaAirlines() {
             if (!currentPerson) {
@@ -1322,7 +1338,7 @@
                 dateGroups[f.日期].push(f);
             });
 
-            // 對於每個日期，檢查是否有華航航班（以 B-18 開頭），若有則取第一個華航航班
+            // 對於每個日期，選取第一個華航航班（以B-18開頭）
             Object.keys(dateGroups).forEach(date => {
                 const dayFlights = dateGroups[date];
                 const chinaFlight = dayFlights.find(f => f.機號 && f.機號.startsWith('B-18'));
@@ -1332,7 +1348,7 @@
             });
 
             syncCheckboxes();
-            const dayCount = selectedIds.size; // 因為一天一條，數量等於天數
+            const dayCount = selectedIds.size;
             showStatus(`✈ 已選華航 (B-18*) 共 ${dayCount} 日 (${selectedIds.size} 筆)`, 'info');
         }
 
@@ -1351,15 +1367,13 @@
                 dateGroups[f.日期].push(f);
             });
 
-            // 對於每個日期，檢查是否有華航航班（以 B-18 開頭），若沒有則取該日期第一個航班
+            // 對於每個日期，選取第一個非華航航班（不是以B-18開頭）
             Object.keys(dateGroups).forEach(date => {
                 const dayFlights = dateGroups[date];
-                const hasChina = dayFlights.some(f => f.機號 && f.機號.startsWith('B-18'));
-                if (!hasChina) {
-                    // 取該日第一個航班（或可選任意）
-                    if (dayFlights.length > 0) {
-                        selectedIds.add(dayFlights[0].id);
-                    }
+                // 找第一個不是 B-18 開頭的航班
+                const customerFlight = dayFlights.find(f => f.機號 && !f.機號.startsWith('B-18'));
+                if (customerFlight) {
+                    selectedIds.add(customerFlight.id);
                 }
             });
 
@@ -1555,7 +1569,9 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '工作經歷');
 
-            const fileName = generateFileName(originalFileName, selectedFlights);
+            // 使用第一個檔案名稱產生檔名
+            const baseName = originalFileNames.length > 0 ? originalFileNames[0] : '航班';
+            const fileName = generateFileName(baseName, selectedFlights);
             XLSX.writeFile(wb, fileName);
             showStatus(`✅ 已下載 ${fileName} (${rows.length} 日)`, 'success');
             closeSelectedPanel();
@@ -1652,4 +1668,4 @@
     </script>
 
 </body>
-    </html>
+</html>
