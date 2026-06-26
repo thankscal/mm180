@@ -51,6 +51,39 @@
             color: #64748b;
             margin-left: 10px;
         }
+        .year-input-section {
+            background: #f8fafc;
+            padding: 12px 22px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            margin-bottom: 18px;
+            border: 1px solid #e2e8f0;
+        }
+        .year-input-section label {
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e293b;
+        }
+        .year-input-section input {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 15px;
+            width: 120px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .year-input-section input:focus {
+            border-color: #1e6f9f;
+            box-shadow: 0 0 0 3px rgba(30, 111, 159, 0.12);
+        }
+        .year-input-section .hint {
+            font-size: 13px;
+            color: #64748b;
+        }
         .upload-section {
             background: #f8fafc;
             border: 2px dashed #cbd5e1;
@@ -550,6 +583,12 @@
                 margin-left: 0;
                 margin-top: 2px;
             }
+            .year-input-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                padding: 12px 16px;
+            }
             .upload-section {
                 flex-direction: column;
                 align-items: stretch;
@@ -649,6 +688,13 @@
         <header>
             <h1>✈ 工作經歷整理 <small>勾選航班 · 按日匯總</small></h1>
         </header>
+
+        <!-- 年份輸入區 -->
+        <div class="year-input-section">
+            <label for="yearInput">📅 年份：</label>
+            <input type="number" id="yearInput" value="2026" min="2000" max="2100">
+            <span class="hint">請輸入西元年份，所有日期將以此為準</span>
+        </div>
 
         <div class="upload-section">
             <span class="upload-btn" onclick="document.getElementById('fileInput').click()">📂 選擇檔案（可多選）</span>
@@ -775,6 +821,19 @@
         const SPECIAL_FILTER = ['早到先', '早到', '先接', '早全', '早先', '先到', '早全接', '早全到', '早全先'];
 
         // ================================================================
+        //  取得使用者輸入的年份
+        // ================================================================
+        function getInputYear() {
+            const el = document.getElementById('yearInput');
+            let year = parseInt(el.value);
+            if (isNaN(year) || year < 2000 || year > 2100) {
+                year = new Date().getFullYear();
+                el.value = year;
+            }
+            return year;
+        }
+
+        // ================================================================
         //  檔案上傳 (支援多個檔案)
         // ================================================================
         document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -825,10 +884,9 @@
             allData = [];
             personList.clear();
             let idCounter = 0;
+            const year = getInputYear();
 
             fileEntries.forEach(entry => {
-                const fileName = entry.name;
-                const year = extractYearFromFileName(fileName);
                 const wb = entry.workbook;
                 const sheetNames = wb.SheetNames;
                 sheetNames.forEach(name => {
@@ -862,14 +920,7 @@
             showStatus(`✅ 分析完成！共 ${allData.length} 筆航班，${personList.size} 位人員`, 'success');
         }
 
-        // 從檔名提取年份
-        function extractYearFromFileName(name) {
-            const match = name.match(/\b(20\d{2})\b/);
-            if (match) return parseInt(match[1]);
-            return new Date().getFullYear();
-        }
-
-        // 提取日期，返回 "YYYY-MM-DD"
+        // 提取日期，使用輸入的年份，返回 "YYYY-MM-DD"
         function extractDateFromSheet(sheetName, json, year) {
             let month = null,
                 day = null;
@@ -1562,7 +1613,7 @@
             const rows = grouped.map(item => {
                 const date = item.date;
                 const flights = item.flights;
-                const displayDate = formatDateDisplay(date); // YYYY/MM/DD
+                const displayDate = formatDateDisplay(date);
 
                 const acSet = new Set();
                 const taskSet = new Set();
@@ -1580,7 +1631,7 @@
                     '日期': displayDate,
                     '機號': Array.from(acSet).join('、'),
                     '任務描述': Array.from(taskSet).join('、') || '—',
-                    '實際工時': totalHours // 保留小數點
+                    '實際工時': totalHours
                 };
             });
 
@@ -1588,7 +1639,6 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '工作經歷');
 
-            // 檔名：人名工作經歷.xlsx
             const fileName = `${currentPerson}工作經歷.xlsx`;
             XLSX.writeFile(wb, fileName);
             showStatus(`✅ 已下載 ${fileName} (${rows.length} 日)`, 'success');
@@ -1631,7 +1681,11 @@
             else el.classList.remove('show');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {});
+        document.addEventListener('DOMContentLoaded', function() {
+            // 預設年份為今年
+            const now = new Date();
+            document.getElementById('yearInput').value = now.getFullYear();
+        });
     </script>
 
 </body>
